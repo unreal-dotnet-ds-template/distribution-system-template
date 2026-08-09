@@ -1,0 +1,69 @@
+name: Official Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: |
+          Run ID of the Official Build Pipeline to release.
+          Leave empty to use the latest successful build automatically.
+        required: false
+        type: string
+
+permissions:
+  contents: write  # needed to create GitHub Releases
+
+jobs:
+  release:
+    name: Download & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve build run ID
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.build_run_id }}" ]; then
+            RUN_ID="${{ inputs.build_run_id }}"
+            echo "Using provided run ID: $RUN_ID"
+          else
+            RUN_ID=$(gh run list \
+              --workflow=official_build_pipeline.yml \
+              --status=success \
+              --limit=1 \
+              --json databaseId \
+              --jq '.[0].databaseId')
+            echo "Resolved latest successful build run ID: $RUN_ID"
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./artifacts
+          run-id: ${{ steps.resolve.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Determine version from artifacts
+        id: version
+        run: |
+          VERSION=$(cat ./artifacts/version.txt)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing version: $VERSION from run ${{ steps.resolve.outputs.run_id }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          gh release create "$TAG" ./artifacts/** \
+            --title "Release $TAG" \
+            --notes "Released from build run [${{ steps.resolve.outputs.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.resolve.outputs.run_id }})" \
+            --draft

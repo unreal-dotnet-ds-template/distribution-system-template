@@ -1,0 +1,43 @@
+<Project>
+
+  <!--
+    Imported AFTER each project file (Directory.Build.props is imported before).
+    Add shared build targets here that need project-level config to be resolved first.
+  -->
+
+  <!--
+    CollectDeployableArtifacts: copies build output of deployable projects to:
+      /out/<ProjectName>/<OutputPath>   e.g. out/DummyConsoleApp/bin/Release/net9.0/
+    Uses $(OutputPath) directly so configuration, target framework, and any custom
+    output path overrides are all reflected automatically — nothing is hardcoded.
+    Conditions:
+      - Release configuration only
+      - Not a library (OutputType != Library)
+      - Not a test project (IsTestProject != true)
+    The build and test steps are completely unaffected — this runs only after a successful build.
+  -->
+  <Target Name="CollectDeployableArtifacts"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and
+                     '$(OutputType)' != 'Library' and
+                     '$(IsTestProject)' != 'true'">
+
+    <PropertyGroup>
+      <_ArtifactsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)out\$(MSBuildProjectName)\$(OutputPath)'))</_ArtifactsRoot>
+    </PropertyGroup>
+
+    <Message Text="[CollectDeployableArtifacts] Copying $(MSBuildProjectName) → out\$(MSBuildProjectName)\$(OutputPath)" Importance="high" />
+
+    <MakeDir Directories="$(_ArtifactsRoot)" />
+
+    <ItemGroup>
+      <_ArtifactFiles Include="$(OutputPath)**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_ArtifactFiles)"
+          DestinationFiles="@(_ArtifactFiles->'$(_ArtifactsRoot)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+
+  </Target>
+
+</Project>

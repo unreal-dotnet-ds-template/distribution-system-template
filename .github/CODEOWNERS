@@ -1,0 +1,9 @@
+# CODEOWNERS
+#
+# These owners are automatically requested for review on every PR.
+# Syntax: <pattern> <@user or @org/team>
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: every PR requires review from a repo owner
+*   @OlzhabaevSh

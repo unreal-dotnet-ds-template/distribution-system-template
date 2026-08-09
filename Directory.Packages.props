@@ -1,0 +1,31 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Enables central package version management across all projects -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Prevent individual projects from overriding versions declared here -->
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Build Tools">
+    <PackageVersion Include="MinVer" Version="5.0.0" />
+  </ItemGroup>
+
+  <!--
+    Add all NuGet package versions below. Projects reference packages by name only.
+    Versions are managed centrally here — no version drift across projects.
+
+    <ItemGroup Label="ASP.NET Core">
+      <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    </ItemGroup>
+
+    <ItemGroup Label="Testing">
+      <PackageVersion Include="Microsoft.NET.Test.Sdk"         Version="17.13.0" />
+      <PackageVersion Include="xunit"                         Version="2.9.3" />
+      <PackageVersion Include="xunit.runner.visualstudio"     Version="2.8.2" />
+      <PackageVersion Include="FluentAssertions"              Version="8.0.0" />
+      <PackageVersion Include="coverlet.collector"            Version="6.0.4" />
+    </ItemGroup>
+  -->
+
+</Project>

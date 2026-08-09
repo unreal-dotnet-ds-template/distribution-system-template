@@ -1,0 +1,120 @@
+name: Official Build Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to push git tags
+
+jobs:
+  build:
+    name: Version, Build, Test & Publish Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for full git log + MinVer
+
+      # ── Versioning ────────────────────────────────────────────────────────────
+      # Detect bump type from conventional commits since the last tag:
+      #   BREAKING CHANGE / feat! / fix! → major
+      #   feat:                          → minor
+      #   everything else                → patch
+      - name: Detect version bump
+        id: bump
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last tag: $LAST_TAG"
+
+          COMMITS=$(git log "${LAST_TAG}..HEAD" --format="%s%n%b")
+
+          if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|feat!|fix!)"; then
+            BUMP_TYPE=major
+          elif echo "$COMMITS" | grep -qE "^feat(\([^)]+\))?:"; then
+            BUMP_TYPE=minor
+          else
+            BUMP_TYPE=patch
+          fi
+
+          echo "type=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
+          echo "Bump type: $BUMP_TYPE"
+
+      - name: Compute next version
+        id: version
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION="${LAST_TAG#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          case "${{ steps.bump.outputs.type }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "version=$NEW_VERSION"   >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW_VERSION"      >> "$GITHUB_OUTPUT"
+          echo "Next version: $NEW_VERSION"
+
+      - name: Create and push git tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      # ── Build ─────────────────────────────────────────────────────────────────
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        # SDK version is read automatically from global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        # MinVer reads the tag pushed above → produces a clean version (e.g. 1.2.3)
+
+      - name: Test
+        run: |
+          dotnet test --no-build --configuration Release \
+            --logger trx \
+            --results-directory ./test-results \
+            --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results
+
+      - name: Publish
+        run: dotnet publish --no-build --configuration Release --output ./publish
+
+      # Store the resolved version alongside artifacts so the release pipeline can read it
+      - name: Write version file
+        run: echo "${{ steps.version.outputs.version }}" > ./publish/version.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./publish
+          if-no-files-found: error
+
+      - name: Summary
+        run: |
+          echo "### ✅ Build complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Version** | \`${{ steps.version.outputs.version }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Git tag** | \`${{ steps.version.outputs.tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Run ID** | \`${{ github.run_id }}\` — use in Official Release Pipeline |" >> "$GITHUB_STEP_SUMMARY"
