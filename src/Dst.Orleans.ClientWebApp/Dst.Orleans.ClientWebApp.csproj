@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\Dst.HostApplication.ServiceDefaults\Dst.HostApplication.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Dst.Orleans.Core\Dst.Orleans.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Orleans.Client" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.Redis" />
+    <PackageReference Include="Aspire.StackExchange.Redis" />
+  </ItemGroup>
+</Project>

@@ -57,7 +57,7 @@ Commit messages control the semver bump on every merge to `main`:
 Git tags are created automatically by the Official Build Pipeline — never create or push tags manually.
 
 ### Integration tests use the real AppHost
-Tests in `Mdr.HostApplication.Tests` use `DistributedApplicationTestingBuilder.CreateAsync<Projects.Mdr_HostApplication_AppHost>()` to start the full application stack. Use `app.ResourceNotifications.WaitForResourceHealthyAsync(...)` before making HTTP calls.
+Tests in `Dst.HostApplication.Tests` use `DistributedApplicationTestingBuilder.CreateAsync<Projects.Dst_HostApplication_AppHost>()` to start the full application stack. Use `app.ResourceNotifications.WaitForResourceHealthyAsync(...)` before making HTTP calls.
 
 ### SDK version pinned in `global.json`
 The .NET SDK version (`9.0.300`, `rollForward: latestPatch`) is the single source of truth for developers and all CI pipelines.

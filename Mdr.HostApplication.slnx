@@ -1,13 +1,13 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Mdr.HostApplication.AppHost/Mdr.HostApplication.AppHost.csproj" />
-    <Project Path="src/Mdr.HostApplication.ServiceDefaults/Mdr.HostApplication.ServiceDefaults.csproj" />
-    <Project Path="src/Mdr.HostApplication.Web/Mdr.HostApplication.Web.csproj" />
-    <Project Path="src/Mdr.Orleans.ClientWebApp/Mdr.Orleans.ClientWebApp.csproj" />
-    <Project Path="src/Mdr.Orleans.Core/Mdr.Orleans.Core.csproj" />
-    <Project Path="src/Mdr.Orleans.SiloWebApp/Mdr.Orleans.SiloWebApp.csproj" />
+    <Project Path="src/Dst.HostApplication.AppHost/Dst.HostApplication.AppHost.csproj" />
+    <Project Path="src/Dst.HostApplication.ServiceDefaults/Dst.HostApplication.ServiceDefaults.csproj" />
+    <Project Path="src/Dst.HostApplication.Web/Dst.HostApplication.Web.csproj" />
+    <Project Path="src/Dst.Orleans.ClientWebApp/Dst.Orleans.ClientWebApp.csproj" />
+    <Project Path="src/Dst.Orleans.Core/Dst.Orleans.Core.csproj" />
+    <Project Path="src/Dst.Orleans.SiloWebApp/Dst.Orleans.SiloWebApp.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Mdr.HostApplication.Tests/Mdr.HostApplication.Tests.csproj" />
+    <Project Path="tests/Dst.HostApplication.Tests/Dst.HostApplication.Tests.csproj" />
   </Folder>
 </Solution>
