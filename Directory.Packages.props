@@ -1,16 +1,13 @@
 <Project>
-
   <PropertyGroup>
     <!-- Enables central package version management across all projects -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Prevent individual projects from overriding versions declared here -->
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
   </PropertyGroup>
-
   <ItemGroup Label="Build Tools">
     <PackageVersion Include="MinVer" Version="5.0.0" />
   </ItemGroup>
-
   <ItemGroup Label="Orleans">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
@@ -21,7 +18,6 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
   </ItemGroup>
-
   <ItemGroup Label="Orleans-Test">
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.6" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
@@ -29,5 +25,21 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageVersion Include="xunit.v3" Version="3.0.1" />
   </ItemGroup>
-
+  <ItemGroup Label="Orleans-General">
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="10.2.2" />
+  </ItemGroup>
+  <ItemGroup Label="Orleans-Silo">
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="10.2.2" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.Redis" Version="10.2.2" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Redis" Version="10.2.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.4.6" />
+  </ItemGroup>
+  <ItemGroup Label="Orleans-Client">
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="10.2.2" />
+  </ItemGroup>
+  <ItemGroup Label="Aspire-Orleans">
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.Orleans" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.6" />
+  </ItemGroup>
 </Project>

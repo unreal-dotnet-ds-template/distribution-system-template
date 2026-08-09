@@ -1,0 +1,22 @@
+# Normalize all text files to LF on commit and checkout.
+# This overrides core.autocrlf and ensures consistent line endings
+# across Windows, macOS, and Linux regardless of local git config.
+* text=auto eol=lf
+
+# Explicitly binary — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.zip binary
+*.gz binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.nupkg binary

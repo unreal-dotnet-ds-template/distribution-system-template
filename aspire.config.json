@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "Mdr.HostApplication.AppHost/Mdr.HostApplication.AppHost.csproj"
+    "path": "src/Mdr.HostApplication.AppHost/Mdr.HostApplication.AppHost.csproj"
   }
 }

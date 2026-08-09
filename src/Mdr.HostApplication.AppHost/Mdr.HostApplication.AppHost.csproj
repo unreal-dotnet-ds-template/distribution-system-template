@@ -4,7 +4,13 @@
     <UserSecretsId>1c462794-2355-40f5-8c1b-6444c428cbe5</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Mdr.HostApplication.ApiService\Mdr.HostApplication.ApiService.csproj" />
     <ProjectReference Include="..\Mdr.HostApplication.Web\Mdr.HostApplication.Web.csproj" />
+    <ProjectReference Include="..\Mdr.Orleans.SiloWebApp\Mdr.Orleans.SiloWebApp.csproj" />
+    <ProjectReference Include="..\Mdr.Orleans.ClientWebApp\Mdr.Orleans.ClientWebApp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Orleans" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 </Project>
