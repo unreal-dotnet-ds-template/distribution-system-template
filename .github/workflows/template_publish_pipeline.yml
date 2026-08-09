@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # required for NuGet Trusted Publishing (OIDC)
 
 jobs:
   publish-template:
@@ -69,11 +70,17 @@ jobs:
 
       - name: Push to NuGet
         if: ${{ inputs.dry_run == false }}
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
+          # Exchange GitHub OIDC token for a short-lived NuGet token (Trusted Publishing)
+          OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=nuget.org" | jq -r '.value')
+
+          NUGET_TOKEN=$(curl -sS -X POST https://api.nuget.org/v1/client-token \
+            -H "Content-Type: application/json" \
+            -d "{\"oidcToken\": \"$OIDC_TOKEN\"}" | jq -r '.token')
+
           dotnet nuget push template-pack/nupkg/*.nupkg \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "$NUGET_TOKEN" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
