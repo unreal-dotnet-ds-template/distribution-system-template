@@ -6,7 +6,7 @@ public class WebTests
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
 
-    [Fact]
+    [Fact(Skip = "Integration test — requires Docker/Redis. Run manually or in dedicated integration test stage.")]
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
         // Arrange

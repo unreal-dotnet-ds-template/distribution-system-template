@@ -1,0 +1,6 @@
+<!--
+  This file intentionally stops Directory.Build.props/targets inheritance from
+  the parent repo. The template-pack project is standalone and should not pick
+  up the solution-wide MSBuild properties (analyzers, MinVer from parent, etc.).
+-->
+<Project />

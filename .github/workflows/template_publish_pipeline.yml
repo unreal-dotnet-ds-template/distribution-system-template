@@ -1,0 +1,86 @@
+name: Template Publish Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: |
+          Run ID of the Official Build Pipeline whose git tag to use for versioning.
+          Leave empty to use the latest successful build automatically.
+        required: false
+        type: string
+      dry_run:
+        description: Pack and upload artifact but do NOT push to NuGet.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish-template:
+    name: Pack & Publish Template
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required by MinVer to read full git history
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        # SDK version is read from global.json
+
+      - name: Restore template pack
+        run: dotnet restore template-pack/Dst.AspireOrleans.Template.csproj
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat template-pack/VERSION | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Template version: $VERSION"
+
+      - name: Pack template
+        run: |
+          dotnet pack template-pack/Dst.AspireOrleans.Template.csproj \
+            --no-restore \
+            --configuration Release \
+            /p:Version=${{ steps.version.outputs.version }}
+
+      - name: Upload nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: template-nupkg
+          path: template-pack/nupkg/*.nupkg
+          if-no-files-found: error
+
+      - name: Show package info
+        run: |
+          PKG=$(ls template-pack/nupkg/*.nupkg)
+          echo "### 📦 Template package" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **File** | \`$(basename $PKG)\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Version** | \`${{ steps.version.outputs.version }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Dry run** | \`${{ inputs.dry_run }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Push to NuGet
+        if: ${{ inputs.dry_run == false }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push template-pack/nupkg/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "⚠️ **Dry run** — package was NOT pushed to NuGet." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "✅ **Published to NuGet.**" >> "$GITHUB_STEP_SUMMARY"
+          fi

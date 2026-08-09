@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Package identity -->
+    <PackageId>Dst.AspireOrleans.Template</PackageId>
+    <PackageType>Template</PackageType>
+    <Title>Aspire + Orleans Distribution System Template</Title>
+    <Description>
+      A production-ready dotnet new template for distributed systems using .NET Aspire for
+      orchestration and Microsoft Orleans for actor-based business logic. Includes a Blazor
+      web frontend, Orleans Silo, Orleans Client API, Redis clustering, OpenTelemetry,
+      health checks, central package management, MinVer versioning, and CI/CD pipelines.
+    </Description>
+    <Authors>Dst Template Authors</Authors>
+    <PackageTags>template;aspire;orleans;distributed;cloud;dotnet;grains</PackageTags>
+    <PackageProjectUrl>https://github.com/OlzhabaevSh/unreal-dotnet-ds-template</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Template pack conventions -->
+    <TargetFramework>net9.0</TargetFramework>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <!-- Required so .template.config and dotfiles are not silently dropped -->
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+
+    <!-- Versioning: read from template-pack/VERSION file, passed via /p:Version at pack time -->
+
+    <!-- Output nupkg to a predictable folder for CI pickup -->
+    <PackageOutputPath>$(MSBuildThisFileDirectory)nupkg</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <!-- Prevent the SDK from trying to compile any .cs files pulled in via Content -->
+  <ItemGroup>
+    <Compile Remove="**\*.cs" />
+  </ItemGroup>
+
+  <!--
+    Include all template content from the parent folder (the repo root),
+    excluding build artifacts, IDE folders, and this pack project itself.
+  -->
+  <ItemGroup>
+    <Content Include="..\**"
+             Exclude="..\template-pack\**;
+                      ..\.git\**;
+                      ..\.vs\**;
+                      ..\**\.vs\**;
+                      ..\.vscode\**;
+                      ..\.agents\**;
+                      ..\out\**;
+                      ..\TestResults\**;
+                      ..\*\bin\**;
+                      ..\*\obj\**;
+                      ..\*\*\bin\**;
+                      ..\*\*\obj\**;
+                      ..\*\*\*\bin\**;
+                      ..\*\*\*\obj\**;
+                      ..\**\*.user">
+      <Pack>true</Pack>
+      <PackagePath>content\</PackagePath>
+    </Content>
+  </ItemGroup>
+
+  <!-- Include README at package root for NuGet.org display -->
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

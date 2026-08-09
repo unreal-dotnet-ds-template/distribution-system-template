@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Dst Template",
+  "classifications": ["Aspire", "Orleans", "Distributed", "Cloud"],
+  "identity": "Dst.AspireOrleans.Template",
+  "name": "Aspire + Orleans Distribution System",
+  "shortName": "dst-aspire-orleans",
+  "description": "A production-ready distributed system template using .NET Aspire for orchestration and Microsoft Orleans for actor-based business logic.",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "Dst",
+  "preferNameDirectory": true,
+  "sources": [
+    {
+      "exclude": [
+        ".git/**",
+        ".vs/**",
+        "**/.vs/**",
+        ".vscode/**",
+        ".agents/**",
+        ".template.config/**",
+        "template-pack/**",
+        ".github/workflows/template_publish_pipeline.yml",
+        "out/**",
+        "TestResults/**",
+        "**/bin/**",
+        "**/obj/**",
+        "**/*.user",
+        "**/.gitkeep"
+      ]
+    }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "description": "Restore NuGet packages",
+      "actionId": "3A7C4B45-1F5D-4A30-959A-51B88E82B5D2",
+      "continueOnError": true,
+      "args": {
+        "executable": "dotnet",
+        "args": "restore"
+      },
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore' to restore NuGet packages"
+        }
+      ]
+    }
+  ]
+}
