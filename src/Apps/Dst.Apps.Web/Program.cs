@@ -1,5 +1,5 @@
-using Dst.HostApplication.Web;
-using Dst.HostApplication.Web.Components;
+using Dst.Apps.Web;
+using Dst.Apps.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

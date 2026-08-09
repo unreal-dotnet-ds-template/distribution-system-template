@@ -12,13 +12,13 @@ var orleans = builder.AddOrleans("orleansCluster")
     .WithGrainStorage("PubSubStore", orleansClusteringRedis);
 
 // orleans silo -> backend. you run logic here.
-var orleansSilo = builder.AddProject<Projects.Dst_Orleans_SiloWebApp>("orleanssilo")
+var orleansSilo = builder.AddProject<Projects.Dst_Apps_OrleansSiloWebApp>("orleanssilo")
     .WithReference(orleans)
     .WaitFor(orleansClusteringRedis)
     .WithReplicas(1);
 
 // orleans client -> frontend. you call grains here.
-var orleansClient = builder.AddProject<Projects.Dst_Orleans_ClientWebApp>("orleansClient")
+var orleansClient = builder.AddProject<Projects.Dst_Apps_OrleansClientWebApp>("orleansClient")
     .WithReference(orleans.AsClient()) // client-only reference
     .WithHttpHealthCheck("/health")
     .WaitFor(orleansSilo)
@@ -26,7 +26,7 @@ var orleansClient = builder.AddProject<Projects.Dst_Orleans_ClientWebApp>("orlea
 
 #endregion
 
-builder.AddProject<Projects.Dst_HostApplication_Web>("webfrontend")
+builder.AddProject<Projects.Dst_Apps_Web>("webfrontend")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
     .WithReference(orleansClient)

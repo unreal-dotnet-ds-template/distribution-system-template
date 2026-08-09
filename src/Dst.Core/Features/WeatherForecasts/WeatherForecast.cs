@@ -1,4 +1,4 @@
-namespace Dst.Orleans.Core.Features.WeatherForecasts;
+namespace Dst.Core.Features.WeatherForecasts;
 
 [GenerateSerializer, Immutable]
 public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dst.HostApplication.AppHost\Dst.HostApplication.AppHost.csproj" />
+    <ProjectReference Include="..\..\src\Aspires\Dst.Aspires.AppHost\Dst.Aspires.AppHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>
