@@ -11,21 +11,23 @@
     <PackageVersion Include="MinVer" Version="5.0.0" />
   </ItemGroup>
 
-  <!--
-    Add all NuGet package versions below. Projects reference packages by name only.
-    Versions are managed centrally here — no version drift across projects.
+  <ItemGroup Label="Orleans">
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+  </ItemGroup>
 
-    <ItemGroup Label="ASP.NET Core">
-      <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
-    </ItemGroup>
-
-    <ItemGroup Label="Testing">
-      <PackageVersion Include="Microsoft.NET.Test.Sdk"         Version="17.13.0" />
-      <PackageVersion Include="xunit"                         Version="2.9.3" />
-      <PackageVersion Include="xunit.runner.visualstudio"     Version="2.8.2" />
-      <PackageVersion Include="FluentAssertions"              Version="8.0.0" />
-      <PackageVersion Include="coverlet.collector"            Version="6.0.4" />
-    </ItemGroup>
-  -->
+  <ItemGroup Label="Orleans-Test">
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.4.6" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="xunit.v3" Version="3.0.1" />
+  </ItemGroup>
 
 </Project>

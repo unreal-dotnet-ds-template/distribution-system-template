@@ -1,0 +1,10 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>1c462794-2355-40f5-8c1b-6444c428cbe5</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Mdr.HostApplication.ApiService\Mdr.HostApplication.ApiService.csproj" />
+    <ProjectReference Include="..\Mdr.HostApplication.Web\Mdr.HostApplication.Web.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mdr.HostApplication.ApiService/Mdr.HostApplication.ApiService.csproj" />
+    <Project Path="src/Mdr.HostApplication.AppHost/Mdr.HostApplication.AppHost.csproj" />
+    <Project Path="src/Mdr.HostApplication.ServiceDefaults/Mdr.HostApplication.ServiceDefaults.csproj" />
+    <Project Path="src/Mdr.HostApplication.Web/Mdr.HostApplication.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mdr.HostApplication.Tests/Mdr.HostApplication.Tests.csproj" />
+  </Folder>
+</Solution>

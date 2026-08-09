@@ -59,3 +59,7 @@ nunit-*.xml
 # Deployable artifacts collected from Release builds
 /out/*
 !/out/.gitkeep
+
+# IDE
+.vs
+*.user
