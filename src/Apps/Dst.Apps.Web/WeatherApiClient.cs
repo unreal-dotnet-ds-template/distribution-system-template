@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Dst.HostApplication.Web;
+namespace Dst.Apps.Web;
 
 [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by DI")]
 internal sealed class WeatherApiClient(HttpClient httpClient)

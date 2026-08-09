@@ -1,4 +1,4 @@
-using Dst.Orleans.Core.Features.WeatherForecasts;
+using Dst.Core.Features.WeatherForecasts;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);

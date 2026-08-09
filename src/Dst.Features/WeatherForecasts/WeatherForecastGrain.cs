@@ -1,6 +1,6 @@
-using Dst.Orleans.Core.Features.WeatherForecasts;
+using Dst.Core.Features.WeatherForecasts;
 
-namespace Dst.Orleans.SiloWebApp.Features.WeatherForecasts;
+namespace Dst.Features.WeatherForecasts;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1515:Consider making public types internal", Justification = "<Pending>")]
 public class WeatherForecastGrain : Grain, IWeatherForecastGrain

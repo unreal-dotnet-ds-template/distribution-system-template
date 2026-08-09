@@ -1,6 +1,6 @@
 using Orleans;
 
-namespace Dst.Orleans.Core.Features.WeatherForecasts;
+namespace Dst.Core.Features.WeatherForecasts;
 
 public interface IWeatherForecastGrain : IGrainWithIntegerKey
 {
