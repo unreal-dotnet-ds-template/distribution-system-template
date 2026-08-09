@@ -72,7 +72,7 @@ jobs:
 
       # ── Build ─────────────────────────────────────────────────────────────────
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         # SDK version is read automatically from global.json
 
       - name: Restore
