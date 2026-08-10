@@ -26,7 +26,11 @@
     <NoDefaultExcludes>true</NoDefaultExcludes>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 
-    <!-- Versioning: read from template-pack/VERSION file, passed via /p:Version at pack time -->
+    <!-- Versioning: read from VERSION file next to this project -->
+    <TemplateVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</TemplateVersion>
+    <Version>$(TemplateVersion)</Version>
+    <AssemblyVersion>$(TemplateVersion)</AssemblyVersion>
+    <FileVersion>$(TemplateVersion)</FileVersion>
 
     <!-- Output nupkg to a predictable folder for CI pickup -->
     <PackageOutputPath>$(MSBuildThisFileDirectory)nupkg</PackageOutputPath>
