@@ -84,7 +84,7 @@ jobs:
             exit 1
           fi
 
-          NUGET_RESPONSE=$(curl -sS -X POST https://api.nuget.org/v1/client-token \
+          NUGET_RESPONSE=$(curl -sS -X POST https://api.nuget.org/v1/authentication/authenticate \
             -H "Content-Type: application/json" \
             -d "{\"oidcToken\": \"$OIDC_TOKEN\"}")
 
