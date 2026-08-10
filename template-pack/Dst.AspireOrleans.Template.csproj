@@ -7,8 +7,8 @@
     <Title>Aspire + Orleans Distribution System Template</Title>
     <Description>
       A production-ready dotnet new template for distributed systems using .NET Aspire for
-      orchestration and Microsoft Orleans for actor-based business logic. Includes a Blazor
-      web frontend, Orleans Silo, Orleans Client API, Redis clustering, OpenTelemetry,
+      orchestration and Microsoft Orleans for actor-based business logic. Includes an Orleans
+      Client Web API with Scalar OpenAPI UI, Orleans Silo backend, Redis clustering, OpenTelemetry,
       health checks, central package management, MinVer versioning, and CI/CD pipelines.
     </Description>
     <Authors>Dst Template Authors</Authors>

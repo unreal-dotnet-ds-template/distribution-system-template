@@ -1,59 +1,57 @@
 # Aspire + Orleans Distribution System Template
 
-A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** orchestration and **Microsoft Orleans** actor-based business logic.
+A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** and **Microsoft Orleans**.
 
-📦 **Package:** `Dst.AspireOrleans.Template`
-🔗 **Repository:** [github.com/unreal-dotnet-ds-template/distribution-system-template](https://github.com/unreal-dotnet-ds-template/distribution-system-template)
-
----
-
-## What it creates
-
-A ready-to-run solution with the following projects:
-
-| Project | Role |
-|---|---|
-| `Dst.Aspires.AppHost` | .NET Aspire orchestrator |
-| `Dst.WebApiApp` | HTTP API — Orleans client, exposes endpoints |
-| `Dst.OrleansSilo.WebApp` | Orleans silo — hosts your grains |
-| `Dst.Core` | Contracts — grain interfaces and models |
-| `Dst.Features` | Business logic — grain implementations |
-| `Dst.Aspires.ServiceDefaults` | Shared OpenTelemetry, health checks, service discovery |
-| `Dst.HostApplication.Tests` | Integration tests using Aspire test hosting |
-
-**Batteries included:**
-- Orleans clustering via Redis
-- OpenTelemetry (traces, metrics, logs)
-- Health check endpoints (`/health`, `/alive`)
-- Central NuGet package management
-- MinVer automatic versioning from git tags
-- GitHub Actions CI/CD pipelines
+[![NuGet](https://img.shields.io/nuget/v/Dst.AspireOrleans.Template.svg?style=flat-square&label=NuGet)](https://www.nuget.org/packages/Dst.AspireOrleans.Template)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 ---
 
-## Install
+## 🎯 What is it?
 
-```shell
+A pre-configured .NET solution template that combines **Microsoft Orleans** (for distributed virtual actor logic) and **.NET Aspire** (for cloud-native orchestration and telemetry), following modern repository standards out of the box.
+
+---
+
+## 💡 Why use it?
+
+Setting up a distributed Orleans system usually requires configuring clustering, silo hosting, grain storage, local containers, service discovery, and OpenTelemetry from scratch.
+
+This template eliminates the setup overhead: you get a fully functional, orchestrated distributed system with Redis clustering and OpenTelemetry running in seconds.
+
+---
+
+## ✨ Key Benefits
+
+- 🎭 **Orleans Virtual Actors:** Build distributed, concurrent business logic without manual lock management, cache invalidation, or database boilerplate.
+- 🔭 **Zero-Friction Local Execution:** .NET Aspire boots Redis, the Orleans Silo, Web API, and the telemetry dashboard with a single command.
+- 🧩 **The 3-Folder Rule:** All business logic lives in just 3 projects (`Core`, `Features`, `WebApiApp`). Infrastructure and hosting remain untouched.
+- 🧪 **Built-in E2E & Functional Testing:** Test full distributed flows using Aspire's test hosting library in C# without third-party test runners.
+- 📦 **Modern .NET Repository Standards:** Central Package Management (`Directory.Packages.props`), pinned .NET 9 SDK, MinVer semantic versioning, and GitHub Actions CI/CD.
+
+---
+
+## ⚡ How to Use
+
+```bash
+# 1. Install the template
 dotnet new install Dst.AspireOrleans.Template
-```
 
-## Create a new project
+# 2. Create your project
+dotnet new dst-aspire-orleans -n MyPaymentSystem
 
-```shell
-dotnet new dst-aspire-orleans -n MyCompany
-cd MyCompany
-dotnet run --project src/Aspires/MyCompany.Aspires.AppHost
-```
-
-## Uninstall
-
-```shell
-dotnet new uninstall Dst.AspireOrleans.Template
+# 3. Run everything
+cd MyPaymentSystem
+dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
 ```
 
 ---
 
-## Requirements
+## 📋 Requirements
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Docker](https://www.docker.com/) (for Redis clustering used by Orleans)
+- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [Docker Desktop](https://www.docker.com/) or [Podman](https://podman.io/) (for local Redis clustering container)
+
+---
+
+🔗 **Full documentation & E2E guide:** [GitHub Repository](https://github.com/unreal-dotnet-ds-template/distribution-system-template)
