@@ -2,10 +2,10 @@
 
 A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** for orchestration and **Microsoft Orleans** for actor-based business logic.
 
-> **You only need to touch two folders to build your application:**
+> **You only need to touch three folders to build your application:**
 > - `src/Dst.Core` — interfaces, contracts, shared models
 > - `src/Dst.Features` — grain implementations (your business logic)
-> - `src/Dst.WebApiApp` — Endpoints
+> - `src/Dst.WebApiApp` — HTTP endpoints
 >
 > Everything else is infrastructure and can stay untouched.
 
@@ -25,7 +25,7 @@ cd my-app
 dotnet run --project src/Aspires/MyCompany.Aspires.AppHost
 ```
 
-Aspire starts Redis, the Orleans Silo, the Orleans Client API, and the Web UI — all wired together automatically.
+Aspire starts Redis, the Orleans Silo, and the Web API — all wired together automatically.
 
 ---
 
@@ -41,9 +41,10 @@ Aspire starts Redis, the Orleans Silo, the Orleans Client API, and the Web UI �
 │   ├── Dst.Features/                    ← YOUR BUSINESS LOGIC (touch this)
 │   │   └── WeatherForecasts/            ← Example: grain implementation
 │   │
-│   ├── Apps/
-│   │   ├── Dst.Apps.OrleansSiloWebApp/  ← Orleans Silo — runs your grains
-│   │   ├── Dst.Apps.OrleansClientWebApp/← Orleans Client API — HTTP endpoints calling grains <!-- TBD UPDATE -->
+│   ├── Dst.WebApiApp/                   ← YOUR ENDPOINTS (touch this)
+│   │
+│   ├── OrleansSilo/
+│   │   └── Dst.OrleansSilo.WebApp/      ← Orleans Silo — runs your grains
 │   │
 │   └── Aspires/
 │       ├── Dst.Aspires.AppHost/         ← Aspire orchestrator — wires everything together
@@ -67,16 +68,13 @@ Aspire starts Redis, the Orleans Silo, the Orleans Client API, and the Web UI �
 ## How It Works
 
 ```
- [Blazor Web UI]
-       │ HTTP (service discovery: "orleansClient")
-       ▼
- [Orleans Client WebApp]   ← HTTP API, routes requests to grains
+ [Dst.WebApiApp]            ← HTTP API, routes requests to grains
        │ Orleans grain calls
        ▼
- [Orleans Silo WebApp]     ← Hosts your grain implementations (Dst.Features)
+ [Dst.OrleansSilo.WebApp]   ← Hosts your grain implementations (Dst.Features)
        │ clustering + grain storage
        ▼
-    [Redis]                ← Managed automatically by Aspire
+    [Redis]                 ← Managed automatically by Aspire
 ```
 
 **Aspire** handles service discovery, health checks, startup ordering, and local Redis provisioning.
@@ -112,7 +110,7 @@ public class OrderGrain : Grain, IOrderGrain
 }
 ```
 
-### 3. Expose it via an HTTP endpoint in `Dst.Apps.OrleansClientWebApp`
+### 3. Expose it via an HTTP endpoint in `Dst.WebApiApp`
 
 ```csharp
 app.MapPost("/orders", async ([FromServices] IClusterClient client, OrderRequest req) =>
@@ -161,7 +159,7 @@ Every service calls `builder.AddServiceDefaults()` and `app.MapDefaultEndpoints(
 - Health check endpoints (`/health`, `/alive`)
 - HTTP client resilience and service discovery
 
-Do not remove these calls from the `Apps` projects.
+Do not remove these calls from `Dst.WebApiApp` and `Dst.OrleansSilo.WebApp`.
 
 ---
 

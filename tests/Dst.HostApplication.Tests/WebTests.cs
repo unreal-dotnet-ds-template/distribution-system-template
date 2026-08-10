@@ -4,9 +4,9 @@ namespace Dst.HostApplication.Tests;
 
 public class WebTests
 {
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
-    [Fact(Skip = "Integration test — requires Docker/Redis. Run manually or in dedicated integration test stage.")]
+    [Fact]
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
         // Arrange

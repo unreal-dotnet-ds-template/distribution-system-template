@@ -5,13 +5,12 @@
     <Project Path="src/Dst.WebApiApp/Dst.WebApiApp.csproj" />
   </Folder>
 
-  <Folder Name="/src/Apps/">
-    <Project Path="src/Apps/Dst.Apps.OrleansSiloWebApp/Dst.Apps.OrleansSiloWebApp.csproj" />
-  </Folder>
-
   <Folder Name="/src/Aspires/">
     <Project Path="src/Aspires/Dst.Aspires.AppHost/Dst.Aspires.AppHost.csproj" />
     <Project Path="src/Aspires/Dst.Aspires.ServiceDefaults/Dst.Aspires.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/OrleansSilo/">
+    <Project Path="src/OrleansSilo/Dst.OrleansSilo.WebApp/Dst.OrleansSilo.WebApp.csproj" />
   </Folder>
 
   <Folder Name="/tests/">

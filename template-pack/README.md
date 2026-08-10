@@ -13,12 +13,13 @@ A ready-to-run solution with the following projects:
 
 | Project | Role |
 |---|---|
-| `AppHost` | .NET Aspire orchestrator |
-| `ApiService` | Orleans client — exposes HTTP API |
-| `SiloService` | Orleans silo — hosts your grains |
-| `Web` | Blazor frontend |
-| `ServiceDefaults` | Shared OpenTelemetry, health checks, service discovery |
-| `Tests` | Integration tests using Aspire test hosting |
+| `Dst.Aspires.AppHost` | .NET Aspire orchestrator |
+| `Dst.WebApiApp` | HTTP API — Orleans client, exposes endpoints |
+| `Dst.OrleansSilo.WebApp` | Orleans silo — hosts your grains |
+| `Dst.Core` | Contracts — grain interfaces and models |
+| `Dst.Features` | Business logic — grain implementations |
+| `Dst.Aspires.ServiceDefaults` | Shared OpenTelemetry, health checks, service discovery |
+| `Dst.HostApplication.Tests` | Integration tests using Aspire test hosting |
 
 **Batteries included:**
 - Orleans clustering via Redis
@@ -41,7 +42,7 @@ dotnet new install Dst.AspireOrleans.Template
 ```shell
 dotnet new dst-aspire-orleans -n MyCompany
 cd MyCompany
-dotnet run --project AppHost
+dotnet run --project src/Aspires/MyCompany.Aspires.AppHost
 ```
 
 ## Uninstall

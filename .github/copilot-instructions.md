@@ -23,13 +23,15 @@ This is a **.NET Aspire** distributed application template. The key projects:
 
 | Project | Role |
 |---|---|
-| `AppHost` | Aspire orchestrator — defines the topology (which services run, their references, health checks) |
-| `ApiService` | Backend Web API (minimal API style) |
-| `Web` | Frontend web project; depends on `ApiService` via Aspire service discovery |
-| `ServiceDefaults` | Shared library referenced by every service — wires up OpenTelemetry, health checks (`/health`, `/alive`), HTTP resilience, and service discovery |
-| `Tests` | Integration tests using `DistributedApplicationTestingBuilder` — spins up the real AppHost |
+| `Dst.Aspires.AppHost` | Aspire orchestrator — defines the topology (which services run, their references, health checks) |
+| `Dst.WebApiApp` | HTTP API — Orleans client, exposes endpoints that call grains |
+| `Dst.OrleansSilo.WebApp` | Orleans Silo — hosts grain implementations from `Dst.Features` |
+| `Dst.Core` | Contracts — grain interfaces, models, shared types |
+| `Dst.Features` | Business logic — grain implementations |
+| `Dst.Aspires.ServiceDefaults` | Shared library referenced by every service — wires up OpenTelemetry, health checks (`/health`, `/alive`), HTTP resilience, and service discovery |
+| `Dst.HostApplication.Tests` | Integration tests using `DistributedApplicationTestingBuilder` — spins up the real AppHost |
 
-**The AppHost is the single source of truth for the service graph.** Service-to-service HTTP calls use Aspire service discovery (logical names like `"apiservice"`) rather than hard-coded URLs.
+**The AppHost is the single source of truth for the service graph.** Service-to-service HTTP calls use Aspire service discovery (logical names like `"web-api"`) rather than hard-coded URLs.
 
 ## Key Conventions
 
@@ -57,7 +59,7 @@ Commit messages control the semver bump on every merge to `main`:
 Git tags are created automatically by the Official Build Pipeline — never create or push tags manually.
 
 ### Integration tests use the real AppHost
-Tests in `Dst.HostApplication.Tests` use `DistributedApplicationTestingBuilder.CreateAsync<Projects.Dst_HostApplication_AppHost>()` to start the full application stack. Use `app.ResourceNotifications.WaitForResourceHealthyAsync(...)` before making HTTP calls.
+Tests in `Dst.HostApplication.Tests` use `DistributedApplicationTestingBuilder.CreateAsync<Projects.Dst_Aspires_AppHost>()` to start the full application stack. Use `app.ResourceNotifications.WaitForResourceHealthyAsync(...)` before making HTTP calls.
 
 ### SDK version pinned in `global.json`
 The .NET SDK version (`9.0.300`, `rollForward: latestPatch`) is the single source of truth for developers and all CI pipelines.

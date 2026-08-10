@@ -20,12 +20,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # required by MinVer to read full git history
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         # SDK version is read from global.json
 
       - name: Restore template pack
@@ -46,7 +46,7 @@ jobs:
             /p:Version=${{ steps.version.outputs.version }}
 
       - name: Upload nupkg artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: template-nupkg
           path: template-pack/nupkg/*.nupkg

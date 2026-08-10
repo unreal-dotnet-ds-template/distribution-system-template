@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # required for full git log + MinVer
 
@@ -72,7 +72,7 @@ jobs:
 
       # ── Build ─────────────────────────────────────────────────────────────────
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         # SDK version is read automatically from global.json
 
       - name: Restore
@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: ./test-results
@@ -104,7 +104,7 @@ jobs:
         run: echo "${{ steps.version.outputs.version }}" > ./publish/version.txt
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: ./publish

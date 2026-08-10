@@ -10,7 +10,7 @@ var orleans = builder.AddOrleans("orleansCluster")
     .WithGrainStorage("PubSubStore", redisOrleansClustering);
 
 // orleans silo -> backend. you run logic here.
-var webOrleansSilo = builder.AddProject<Projects.Dst_Apps_OrleansSiloWebApp>("web-orleans-silo")
+var webOrleansSilo = builder.AddProject<Projects.Dst_OrleansSilo_WebApp>("web-orleans-silo")
     .WithReference(orleans)
     .WaitFor(redisOrleansClustering)
     .WithReplicas(1);
