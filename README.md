@@ -5,7 +5,7 @@ A production-ready `dotnet new` template for building distributed systems with *
 > **You only need to touch two folders to build your application:**
 > - `src/Dst.Core` — interfaces, contracts, shared models
 > - `src/Dst.Features` — grain implementations (your business logic)
-> - `src/Apps/Dst.Apps.OrleansClientWebApp` — Endpoints
+> - `src/Dst.WebApiApp` — Endpoints
 >
 > Everything else is infrastructure and can stay untouched.
 
@@ -43,7 +43,7 @@ Aspire starts Redis, the Orleans Silo, the Orleans Client API, and the Web UI �
 │   │
 │   ├── Apps/
 │   │   ├── Dst.Apps.OrleansSiloWebApp/  ← Orleans Silo — runs your grains
-│   │   ├── Dst.Apps.OrleansClientWebApp/← Orleans Client API — HTTP endpoints calling grains
+│   │   ├── Dst.Apps.OrleansClientWebApp/← Orleans Client API — HTTP endpoints calling grains <!-- TBD UPDATE -->
 │   │
 │   └── Aspires/
 │       ├── Dst.Aspires.AppHost/         ← Aspire orchestrator — wires everything together

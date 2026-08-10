@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Apps\Dst.Apps.OrleansSiloWebApp\Dst.Apps.OrleansSiloWebApp.csproj" />
-    <ProjectReference Include="..\..\Apps\Dst.Apps.OrleansClientWebApp\Dst.Apps.OrleansClientWebApp.csproj" />
+    <ProjectReference Include="..\..\Dst.WebApiApp\Dst.WebApiApp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />

@@ -2,10 +2,10 @@
   <Folder Name="/src/">
     <Project Path="src/Dst.Core/Dst.Core.csproj" />
     <Project Path="src/Dst.Features/Dst.Features.csproj" />
+    <Project Path="src/Dst.WebApiApp/Dst.WebApiApp.csproj" />
   </Folder>
 
   <Folder Name="/src/Apps/">
-    <Project Path="src/Apps/Dst.Apps.OrleansClientWebApp/Dst.Apps.OrleansClientWebApp.csproj" />
     <Project Path="src/Apps/Dst.Apps.OrleansSiloWebApp/Dst.Apps.OrleansSiloWebApp.csproj" />
   </Folder>
 

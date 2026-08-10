@@ -1,25 +1,25 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 // orleans storages for clustering and grain storage
-var orleansClusteringRedis = builder.AddRedis("orleans-clustering-redis");
+var redisOrleansClustering = builder.AddRedis("redis-orleans-clustering");
 
 // orleans cluster
 var orleans = builder.AddOrleans("orleansCluster")
-    .WithClustering(orleansClusteringRedis)
-    .WithGrainStorage("DefaultStore", orleansClusteringRedis)
-    .WithGrainStorage("PubSubStore", orleansClusteringRedis);
+    .WithClustering(redisOrleansClustering)
+    .WithGrainStorage("DefaultStore", redisOrleansClustering)
+    .WithGrainStorage("PubSubStore", redisOrleansClustering);
 
 // orleans silo -> backend. you run logic here.
-var orleansSilo = builder.AddProject<Projects.Dst_Apps_OrleansSiloWebApp>("orleanssilo")
+var webOrleansSilo = builder.AddProject<Projects.Dst_Apps_OrleansSiloWebApp>("web-orleans-silo")
     .WithReference(orleans)
-    .WaitFor(orleansClusteringRedis)
+    .WaitFor(redisOrleansClustering)
     .WithReplicas(1);
 
 // orleans client -> frontend. you call grains here.
-var orleansClient = builder.AddProject<Projects.Dst_Apps_OrleansClientWebApp>("orleansClient")
+var webApi = builder.AddProject<Projects.Dst_WebApiApp>("web-api")
     .WithReference(orleans.AsClient()) // client-only reference
     .WithHttpHealthCheck("/health")
-    .WaitFor(orleansSilo)
+    .WaitFor(webOrleansSilo)
     .WithReplicas(1);
 
 builder.Build().Run();

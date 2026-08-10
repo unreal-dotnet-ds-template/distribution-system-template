@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.AddServiceDefaults();
-builder.AddKeyedRedisClient("orleans-clustering-redis");
+builder.AddKeyedRedisClient("redis-orleans-clustering");
 
 builder.UseOrleans();
 
