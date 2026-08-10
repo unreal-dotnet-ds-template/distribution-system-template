@@ -13,7 +13,7 @@
     </Description>
     <Authors>Dst Template Authors</Authors>
     <PackageTags>template;aspire;orleans;distributed;cloud;dotnet;grains</PackageTags>
-    <PackageProjectUrl>https://github.com/OlzhabaevSh/unreal-dotnet-ds-template</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/unreal-dotnet-ds-template/distribution-system-template</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
@@ -71,7 +71,7 @@
 
   <!-- Include README at package root for NuGet.org display -->
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

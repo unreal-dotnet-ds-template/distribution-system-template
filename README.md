@@ -5,6 +5,7 @@ A production-ready `dotnet new` template for building distributed systems with *
 > **You only need to touch two folders to build your application:**
 > - `src/Dst.Core` — interfaces, contracts, shared models
 > - `src/Dst.Features` — grain implementations (your business logic)
+> - `src/Apps/Dst.Apps.OrleansClientWebApp` — Endpoints
 >
 > Everything else is infrastructure and can stay untouched.
 
@@ -14,7 +15,7 @@ A production-ready `dotnet new` template for building distributed systems with *
 
 ```bash
 # Install the template (once)
-dotnet new install ./distribution-system-template
+dotnet new install Dst.AspireOrleans.Template
 
 # Create your project
 dotnet new dst-aspire-orleans -n MyCompany -o ./my-app

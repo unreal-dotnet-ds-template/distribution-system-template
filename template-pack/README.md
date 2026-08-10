@@ -1,68 +1,58 @@
-# Template Pack — Developer Guide
+# Aspire + Orleans Distribution System Template
 
-This folder contains the NuGet template package for `dotnet new dst-aspire-orleans`.
+A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** orchestration and **Microsoft Orleans** actor-based business logic.
 
----
-
-## Build the Package
-
-```powershell
-dotnet pack .\template-pack\ -c Release
-```
-
-Output goes to `template-pack\nupkg\Dst.AspireOrleans.Template.<version>.nupkg`.
+📦 **Package:** `Dst.AspireOrleans.Template`
+🔗 **Repository:** [github.com/unreal-dotnet-ds-template/distribution-system-template](https://github.com/unreal-dotnet-ds-template/distribution-system-template)
 
 ---
 
-## Change the Version
+## What it creates
 
-Edit `template-pack\VERSION` — one line, plain semver:
+A ready-to-run solution with the following projects:
 
-```
-0.0.1
-```
+| Project | Role |
+|---|---|
+| `AppHost` | .NET Aspire orchestrator |
+| `ApiService` | Orleans client — exposes HTTP API |
+| `SiloService` | Orleans silo — hosts your grains |
+| `Web` | Blazor frontend |
+| `ServiceDefaults` | Shared OpenTelemetry, health checks, service discovery |
+| `Tests` | Integration tests using Aspire test hosting |
 
-The `.csproj` reads this file automatically at pack time. No other changes needed.
-
----
-
-## Install Locally
-
-```powershell
-dotnet new install .\template-pack\nupkg\Dst.AspireOrleans.Template.<version>.nupkg
-```
-
-Verify it is registered:
-
-```powershell
-dotnet new list dst
-```
+**Batteries included:**
+- Orleans clustering via Redis
+- OpenTelemetry (traces, metrics, logs)
+- Health check endpoints (`/health`, `/alive`)
+- Central NuGet package management
+- MinVer automatic versioning from git tags
+- GitHub Actions CI/CD pipelines
 
 ---
 
-## Test the Template
+## Install
 
-```powershell
-mkdir C:\tmp\test-dst
-cd C:\tmp\test-dst
+```shell
+dotnet new install Dst.AspireOrleans.Template
+```
+
+## Create a new project
+
+```shell
 dotnet new dst-aspire-orleans -n MyCompany
-dotnet build
+cd MyCompany
+dotnet run --project AppHost
 ```
-
----
 
 ## Uninstall
 
-```powershell
+```shell
 dotnet new uninstall Dst.AspireOrleans.Template
 ```
 
 ---
 
-## Iteration Loop
+## Requirements
 
-```powershell
-dotnet new uninstall Dst.AspireOrleans.Template
-dotnet pack .\template-pack\ -c Release
-dotnet new install .\template-pack\nupkg\Dst.AspireOrleans.Template.<version>.nupkg
-```
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [Docker](https://www.docker.com/) (for Redis clustering used by Orleans)
