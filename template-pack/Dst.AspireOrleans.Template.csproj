@@ -55,7 +55,6 @@
                       ..\.vs\**;
                       ..\**\.vs\**;
                       ..\.vscode\**;
-                      ..\.agents\**;
                       ..\out\**;
                       ..\TestResults\**;
                       ..\*\bin\**;

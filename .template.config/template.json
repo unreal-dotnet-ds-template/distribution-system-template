@@ -19,7 +19,6 @@
         ".vs/**",
         "**/.vs/**",
         ".vscode/**",
-        ".agents/**",
         ".template.config/**",
         "template-pack/**",
         ".github/workflows/template_publish_pipeline.yml",
