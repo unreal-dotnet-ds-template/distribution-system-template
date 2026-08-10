@@ -14,14 +14,18 @@
   "preferNameDirectory": true,
   "sources": [
     {
+      "source": "./",
+      "target": "./",
       "exclude": [
         ".git/**",
         ".vs/**",
         "**/.vs/**",
         ".vscode/**",
+        ".agents/**",
         ".template.config/**",
         "template-pack/**",
         ".github/workflows/template_publish_pipeline.yml",
+        ".github/CODEOWNERS",
         "out/**",
         "TestResults/**",
         "**/bin/**",

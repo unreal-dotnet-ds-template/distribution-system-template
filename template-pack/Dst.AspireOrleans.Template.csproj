@@ -51,10 +51,13 @@
   <ItemGroup>
     <Content Include="..\**"
              Exclude="..\template-pack\**;
+                      ..\.agents\**;
                       ..\.git\**;
                       ..\.vs\**;
                       ..\**\.vs\**;
                       ..\.vscode\**;
+                      ..\.github\workflows\template_publish_pipeline.yml;
+                      ..\.github\CODEOWNERS;
                       ..\out\**;
                       ..\TestResults\**;
                       ..\*\bin\**;
@@ -63,10 +66,9 @@
                       ..\*\*\obj\**;
                       ..\*\*\*\bin\**;
                       ..\*\*\*\obj\**;
-                      ..\**\*.user">
-      <Pack>true</Pack>
-      <PackagePath>content\</PackagePath>
-    </Content>
+                      ..\**\*.user"
+             Pack="true"
+             PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Include README at package root for NuGet.org display -->
