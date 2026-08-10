@@ -6,7 +6,7 @@
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
   </PropertyGroup>
   <ItemGroup Label="Build Tools">
-    <PackageVersion Include="MinVer" Version="5.0.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup Label="Orleans">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
