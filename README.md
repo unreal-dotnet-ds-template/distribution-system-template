@@ -44,7 +44,6 @@ Aspire starts Redis, the Orleans Silo, the Orleans Client API, and the Web UI �
 │   ├── Apps/
 │   │   ├── Dst.Apps.OrleansSiloWebApp/  ← Orleans Silo — runs your grains
 │   │   ├── Dst.Apps.OrleansClientWebApp/← Orleans Client API — HTTP endpoints calling grains
-│   │   └── Dst.Apps.Web/               ← Blazor frontend — calls the Client API
 │   │
 │   └── Aspires/
 │       ├── Dst.Aspires.AppHost/         ← Aspire orchestrator — wires everything together

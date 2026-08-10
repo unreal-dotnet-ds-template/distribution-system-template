@@ -3,7 +3,6 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Apps\Dst.Apps.Web\Dst.Apps.Web.csproj" />
     <ProjectReference Include="..\..\Apps\Dst.Apps.OrleansSiloWebApp\Dst.Apps.OrleansSiloWebApp.csproj" />
     <ProjectReference Include="..\..\Apps\Dst.Apps.OrleansClientWebApp\Dst.Apps.OrleansClientWebApp.csproj" />
   </ItemGroup>

@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-#region Orleans
-
 // orleans storages for clustering and grain storage
 var orleansClusteringRedis = builder.AddRedis("orleans-clustering-redis");
 
@@ -23,13 +21,5 @@ var orleansClient = builder.AddProject<Projects.Dst_Apps_OrleansClientWebApp>("o
     .WithHttpHealthCheck("/health")
     .WaitFor(orleansSilo)
     .WithReplicas(1);
-
-#endregion
-
-builder.AddProject<Projects.Dst_Apps_Web>("webfrontend")
-    .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
-    .WithReference(orleansClient)
-    .WaitFor(orleansClient);
 
 builder.Build().Run();

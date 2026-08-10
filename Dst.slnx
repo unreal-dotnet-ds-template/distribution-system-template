@@ -7,7 +7,6 @@
   <Folder Name="/src/Apps/">
     <Project Path="src/Apps/Dst.Apps.OrleansClientWebApp/Dst.Apps.OrleansClientWebApp.csproj" />
     <Project Path="src/Apps/Dst.Apps.OrleansSiloWebApp/Dst.Apps.OrleansSiloWebApp.csproj" />
-    <Project Path="src/Apps/Dst.Apps.Web/Dst.Apps.Web.csproj" />
   </Folder>
 
   <Folder Name="/src/Aspires/">

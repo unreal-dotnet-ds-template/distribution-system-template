@@ -30,9 +30,9 @@ public class WebTests
         await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
         // Act
-        using var httpClient = app.CreateHttpClient("webfrontend");
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("webfrontend", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
-        var response = await httpClient.GetAsync(new Uri("/", UriKind.Relative), cancellationToken);
+        using var httpClient = app.CreateHttpClient("orleansClient");
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("orleansClient", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        var response = await httpClient.GetAsync(new Uri("/weatherforecast", UriKind.Relative), cancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
