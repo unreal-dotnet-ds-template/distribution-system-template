@@ -1,205 +1,304 @@
 # Aspire + Orleans Distribution System Template
 
-A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** for orchestration and **Microsoft Orleans** for actor-based business logic.
+A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** for cloud-native orchestration and **Microsoft Orleans** for virtual actor business logic.
 
-> **You only need to touch three folders to build your application:**
-> - `src/Dst.Core` — interfaces, contracts, shared models
-> - `src/Dst.Features` — grain implementations (your business logic)
-> - `src/Dst.WebApiApp` — HTTP endpoints
+> 💡 **The 3-Folder Rule:** You only touch three folders to build your application:
+> - `src/Dst.Core` — Interfaces, grain contracts, shared DTOs
+> - `src/Dst.Features` — Grain implementations (your business logic)
+> - `src/Dst.WebApiApp` — HTTP endpoints & API routing
 >
-> Everything else is infrastructure and can stay untouched.
+> Everything else (Silo hosting, Redis clustering, OpenTelemetry, health checks) is preconfigured infrastructure.
 
 ---
 
-## Getting Started
+## ⚡ Quickstart
+
+Get up and running in 30 seconds:
 
 ```bash
-# Install the template (once)
+# 1. Install template
 dotnet new install Dst.AspireOrleans.Template
 
-# Create your project
-dotnet new dst-aspire-orleans -n MyCompany -o ./my-app
-cd my-app
+# 2. Create your project
+dotnet new dst-aspire-orleans -n MyPaymentSystem -o ./my-payment-system
+cd my-payment-system
 
-# Run everything with a single command
-dotnet run --project src/Aspires/MyCompany.Aspires.AppHost
+# 3. Run everything (Aspire Dashboard + Silo + Web API + Redis)
+dotnet run --project src/Aspires/Dst.Aspires.AppHost
 ```
 
-Aspire starts Redis, the Orleans Silo, and the Web API — all wired together automatically.
+Once running:
+- Open the **Aspire Dashboard** (URL displayed in your terminal, e.g. `https://localhost:17228`) to inspect resources, console logs, and OpenTelemetry traces.
+- Access the **Interactive API Reference (Scalar)** at `https://localhost:<port>/scalar/v1` to test endpoints.
 
 ---
 
-## Project Structure
+## 🚀 Your First Feature in 5 Minutes (E2E Flow)
+
+Let's build a distributed **BankAccount** feature (`Deposit` and `GetBalance`) to see how Orleans and Aspire work together.
+
+### Step 1: Define the Contract in `Dst.Core`
+Create `src/Dst.Core/Features/BankAccounts/IBankAccountGrain.cs`:
+
+```csharp
+namespace Dst.Core.Features.BankAccounts;
+
+public interface IBankAccountGrain : IGrainWithStringKey
+{
+    Task<decimal> DepositAsync(decimal amount);
+    Task<decimal> GetBalanceAsync();
+}
+```
+
+### Step 2: Implement the Grain in `Dst.Features`
+Create `src/Dst.Features/BankAccounts/BankAccountGrain.cs`:
+
+```csharp
+using Dst.Core.Features.BankAccounts;
+
+namespace Dst.Features.BankAccounts;
+
+public class BankAccountGrain : Grain, IBankAccountGrain
+{
+    private decimal _balance;
+
+    public Task<decimal> DepositAsync(decimal amount)
+    {
+        _balance += amount;
+        return Task.FromResult(_balance);
+    }
+
+    public Task<decimal> GetBalanceAsync() => Task.FromResult(_balance);
+}
+```
+
+### Step 3: Expose HTTP Endpoints in `Dst.WebApiApp`
+In `src/Dst.WebApiApp/Program.cs`, map endpoints using `IClusterClient`:
+
+```csharp
+app.MapPost("/accounts/{id}/deposit", async (
+    [FromServices] IClusterClient client, 
+    string id, 
+    [FromBody] decimal amount) =>
+{
+    var account = client.GetGrain<IBankAccountGrain>(id);
+    var newBalance = await account.DepositAsync(amount);
+    return Results.Ok(new { AccountId = id, Balance = newBalance });
+}).WithName("DepositToAccount");
+
+app.MapGet("/accounts/{id}/balance", async (
+    [FromServices] IClusterClient client, 
+    string id) =>
+{
+    var account = client.GetGrain<IBankAccountGrain>(id);
+    var balance = await account.GetBalanceAsync();
+    return Results.Ok(new { AccountId = id, Balance = balance });
+}).WithName("GetAccountBalance");
+```
+
+### Step 4: Run & Verify
+Launch the solution:
+```bash
+dotnet run --project src/Aspires/Dst.Aspires.AppHost
+```
+1. Open the **Scalar API docs** (`/scalar/v1`) or use `curl`:
+   ```bash
+   # Deposit $500 into account "acc-101"
+   curl -X POST https://localhost:<port>/accounts/acc-101/deposit -H "Content-Type: application/json" -d "500"
+
+   # Check balance
+   curl https://localhost:<port>/accounts/acc-101/balance
+   # Returns: {"accountId":"acc-101","balance":500}
+   ```
+2. Open the **Aspire Dashboard** $\rightarrow$ **Traces** to see the full distributed call flow from HTTP API $\rightarrow$ Orleans Silo $\rightarrow$ Grain execution!
+
+> [!TIP]
+> **Notice what you did NOT do:** No DI registrations for grains, no database connection strings, no concurrency lock handling, no manual Docker Compose scripts. Orleans and Aspire handle it automatically.
+
+---
+
+## 💡 Why Orleans + Aspire?
+
+Building distributed systems traditionally requires managing databases, cache syncs, concurrency locks, message brokers, and docker-compose configurations. This template solves those pain points out-of-the-box:
+
+| Challenge | Traditional Microservices | With Orleans + Aspire (This Template) |
+|---|---|---|
+| **State & Concurrency** | Manual DB transactions, distributed locks, cache invalidation | **Virtual Actors (Orleans):** Single-threaded execution per grain, in-memory state, auto-activation/deactivation. |
+| **Local Development** | Wrestling `docker-compose.yml`, port collisions, service start delays | **.NET Aspire Orchestration:** Redis, Silos, APIs, and OpenTelemetry boot with a single F5 / `dotnet run`. |
+| **Project Clutter** | Dozens of boilerplate files, complex DI setup for every service | **The 3-Folder Rule:** Focus only on `Core`, `Features`, and `WebApiApp`. Infrastructure stays untouched. |
+| **Testing** | Heavy test containers, flaky network mocking | **Native E2E & Functional Tests:** Full-solution integration testing via Aspire `DistributedApplicationTestingBuilder` and in-memory Orleans `TestCluster`. |
+| **Maintenance** | Package version drift, inconsistent build flags | **Modern .NET Standards:** Central Package Management (CPM), pinned .NET 9 SDK, and automated MinVer semantic releases. |
+
+---
+
+## 📂 Project Structure & Architecture
 
 ```
 /
 ├── src/
-│   ├── Dst.Core/                        ← YOUR INTERFACES & MODELS (touch this)
+│   ├── Dst.Core/                        ← 🟢 [TOUCH THIS] Interfaces, grain contracts, models
 │   │   └── Features/
-│   │       └── WeatherForecasts/        ← Example: grain interface + DTOs
+│   │       ├── WeatherForecasts/        ← Sample grain interface
+│   │       └── BankAccounts/            ← Your grain interfaces
 │   │
-│   ├── Dst.Features/                    ← YOUR BUSINESS LOGIC (touch this)
-│   │   └── WeatherForecasts/            ← Example: grain implementation
+│   ├── Dst.Features/                    ← 🟢 [TOUCH THIS] Grain implementations (business logic)
+│   │   ├── WeatherForecasts/            ← Sample grain logic
+│   │   └── BankAccounts/                ← Your grain logic
 │   │
-│   ├── Dst.WebApiApp/                   ← YOUR ENDPOINTS (touch this)
+│   ├── Dst.WebApiApp/                   ← 🟢 [TOUCH THIS] HTTP API & client endpoints
 │   │
 │   ├── OrleansSilo/
-│   │   └── Dst.OrleansSilo.WebApp/      ← Orleans Silo — runs your grains
+│   │   └── Dst.OrleansSilo.WebApp/      ← ⚙️ [INFRA] Orleans Silo host (runs your grains)
 │   │
 │   └── Aspires/
-│       ├── Dst.Aspires.AppHost/         ← Aspire orchestrator — wires everything together
-│       └── Dst.Aspires.ServiceDefaults/ ← Shared: OpenTelemetry, health checks, resilience
+│       ├── Dst.Aspires.AppHost/         ← ⚙️ [INFRA] Aspire orchestrator (wires services together)
+│       └── Dst.Aspires.ServiceDefaults/ ← ⚙️ [INFRA] OpenTelemetry, health checks, resilience
 │
 ├── tests/
-│   └── Dst.HostApplication.Tests/      ← Integration tests against the real AppHost
+│   └── Dst.HostApplication.Tests/      ← 🧪 Integration tests against the real AppHost
 │
-├── .github/workflows/                   ← CI/CD pipelines
+├── .github/workflows/                   ← CI/CD pipelines (PR build, Official build & release)
 ├── build/                              ← Shared MSBuild customizations
-├── global.json                         ← .NET SDK version pin
-├── Directory.Build.props               ← MSBuild properties for all projects
-├── Directory.Build.targets             ← MSBuild targets for all projects
-├── Directory.Packages.props            ← Central NuGet version management
-├── NuGet.Config                        ← NuGet feed configuration
+├── global.json                         ← Pinned .NET SDK version
+├── Directory.Build.props               ← Centralized MSBuild properties & analyzer rules
+├── Directory.Build.targets             ← Centralized MSBuild targets
+├── Directory.Packages.props            ← Central NuGet package version management
+├── NuGet.Config                        ← NuGet package source configuration
 └── .editorconfig                       ← Code style rules
 ```
 
----
-
-## How It Works
+### System Architecture Flow
 
 ```
- [Dst.WebApiApp]            ← HTTP API, routes requests to grains
-       │ Orleans grain calls
-       ▼
- [Dst.OrleansSilo.WebApp]   ← Hosts your grain implementations (Dst.Features)
-       │ clustering + grain storage
-       ▼
-    [Redis]                 ← Managed automatically by Aspire
+                     ┌────────────────────────┐
+                     │     HTTP Request       │
+                     └───────────┬────────────┘
+                                 │
+                                 ▼
+                     ┌────────────────────────┐
+                     │     Dst.WebApiApp      │ (Orleans Client + Scalar UI)
+                     └───────────┬────────────┘
+                                 │ IClusterClient.GetGrain<T>()
+                                 ▼
+                     ┌────────────────────────┐
+                     │ Dst.OrleansSilo.WebApp │ (Hosts Dst.Features)
+                     └───────────┬────────────┘
+                                 │
+               ┌─────────────────┴─────────────────┐
+               ▼                                   ▼
+    ┌──────────────────────┐            ┌──────────────────────┐
+    │ Redis (Clustering)   │            │ Redis (Grain Storage)│
+    └──────────────────────┘            └──────────────────────┘
+               ▲                                   ▲
+               └─────────────────┬─────────────────┘
+                                 │ Managed by
+                     ┌───────────┴────────────┐
+                     │   Dst.Aspires.AppHost  │ (Orchestrator + Dashboard)
+                     └────────────────────────┘
 ```
-
-**Aspire** handles service discovery, health checks, startup ordering, and local Redis provisioning.
-**Orleans** handles distributed state, virtual actors, and grain lifecycle.
 
 ---
 
-## Where to Add Your Code
+## 🧪 Testing Strategy
 
-### 1. Define your grain interface in `Dst.Core`
+The solution includes integration tests using Aspire's test hosting library (`Aspire.Hosting.Testing`), allowing you to test the full distributed application without external test infrastructure:
 
 ```csharp
-// src/Dst.Core/Features/Orders/IOrderGrain.cs
-namespace Dst.Core.Features.Orders;
-
-public interface IOrderGrain : IGrainWithIntegerKey
+// tests/Dst.HostApplication.Tests/WebTests.cs
+[Fact]
+public async Task GetWeatherForecast_ReturnsOkStatusCode()
 {
-    Task<OrderStatus> GetStatusAsync();
-    Task PlaceAsync(OrderRequest request);
+    var cancellationToken = TestContext.Current.CancellationToken;
+    var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Dst_Aspires_AppHost>(cancellationToken);
+
+    await using var app = await appHost.BuildAsync(cancellationToken);
+    await app.StartAsync(cancellationToken);
+
+    using var httpClient = app.CreateHttpClient("web-api");
+    await app.ResourceNotifications.WaitForResourceHealthyAsync("web-api", cancellationToken);
+
+    var response = await httpClient.GetAsync("/weatherforecast", cancellationToken);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 }
 ```
 
-### 2. Implement the grain in `Dst.Features`
-
-```csharp
-// src/Dst.Features/Orders/OrderGrain.cs
-namespace Dst.Features.Orders;
-
-public class OrderGrain : Grain, IOrderGrain
-{
-    public Task<OrderStatus> GetStatusAsync() { /* ... */ }
-    public Task PlaceAsync(OrderRequest request) { /* ... */ }
-}
+Run all tests from the CLI:
+```bash
+dotnet test
 ```
-
-### 3. Expose it via an HTTP endpoint in `Dst.WebApiApp`
-
-```csharp
-app.MapPost("/orders", async ([FromServices] IClusterClient client, OrderRequest req) =>
-{
-    var grain = client.GetGrain<IOrderGrain>(req.Id);
-    await grain.PlaceAsync(req);
-    return Results.Created();
-});
-```
-
-That's it. No service registration, no DI wiring for grains — Orleans discovers them automatically.
 
 ---
 
-## Key Conventions
+## ⚙️ Key Conventions & Repository Operations
 
-### Central Package Management
-All NuGet versions live **only** in `Directory.Packages.props`. Project files reference packages **without** a version:
+### 1. Central Package Management (CPM)
+All NuGet package versions live exclusively in `Directory.Packages.props`. Project files (`.csproj`) reference packages **without** a `Version` attribute:
 
 ```xml
 <!-- Directory.Packages.props -->
 <PackageVersion Include="Serilog" Version="4.0.0" />
 
-<!-- YourProject.csproj -->
+<!-- Any .csproj file -->
 <PackageReference Include="Serilog" />
 ```
 
-### .NET SDK Version
-Pinned in `global.json` — one change propagates to all developers and all CI pipelines:
+To add a new package:
+1. Add `<PackageVersion Include="Package.Name" Version="x.y.z" />` in `Directory.Packages.props`.
+2. Add `<PackageReference Include="Package.Name" />` in your target `.csproj`.
+
+### 2. Pinned .NET SDK
+The .NET SDK version is pinned in `global.json`. Any update here applies instantly to all developers and CI/CD pipelines:
 ```json
 { "sdk": { "version": "9.0.300", "rollForward": "latestPatch" } }
 ```
 
-### Versioning (Conventional Commits + MinVer)
-Git tags are created **automatically by the Official Build Pipeline** on every merge to `main`. Never create tags manually.
+### 3. ServiceDefaults
+Every service references `Dst.Aspires.ServiceDefaults` and calls:
+- `builder.AddServiceDefaults()` — configures OpenTelemetry (traces, metrics), service discovery, and standard resilience.
+- `app.MapDefaultEndpoints()` — exposes `/health` and `/alive` endpoints.
 
-| Commit pattern | Version bump |
-|---|---|
-| `BREAKING CHANGE`, `feat!:`, `fix!:` | **major** `1.2.3 → 2.0.0` |
-| `feat:` | **minor** `1.2.3 → 1.3.0` |
-| `fix:`, `chore:`, `docs:`, etc. | **patch** `1.2.3 → 1.2.4` |
+### 4. Automatic Versioning (MinVer + Conventional Commits)
+Versioning is handled automatically based on git history and commit messages:
 
-### ServiceDefaults
-Every service calls `builder.AddServiceDefaults()` and `app.MapDefaultEndpoints()`. This is what wires up:
-- OpenTelemetry tracing and metrics
-- Health check endpoints (`/health`, `/alive`)
-- HTTP client resilience and service discovery
-
-Do not remove these calls from `Dst.WebApiApp` and `Dst.OrleansSilo.WebApp`.
+| Commit Pattern | Version Bump | Example |
+|---|---|---|
+| `BREAKING CHANGE:`, `feat!:` | **Major** | `1.2.3` $\rightarrow$ `2.0.0` |
+| `feat:` | **Minor** | `1.2.3` $\rightarrow$ `1.3.0` |
+| `fix:`, `chore:`, `docs:` | **Patch** | `1.2.3` $\rightarrow$ `1.2.4` |
 
 ---
 
-## CI/CD Pipelines
+## 🚢 CI/CD Pipelines & Repository Setup
 
-| Pipeline | Trigger | What it does |
+The template includes ready-to-run GitHub Actions workflows in `.github/workflows/`:
+
+| Pipeline | Trigger | Purpose |
 |---|---|---|
-| **PR Build** | Pull request → `main` | Build + test gate |
-| **Official Build** | Push to `main` / manual | Build + test + publish artifacts + create git tag |
-| **Official Release** | Manual | Downloads artifacts, creates GitHub Release |
+| **PR Build** (`pr_validation_pipeline.yml`) | Pull Request $\rightarrow$ `main` | Validates build, analyzers, and tests as a PR gate. |
+| **Official Build** (`build_and_publish_pipeline.yml`) | Push to `main` | Builds, runs tests, publishes artifacts, and creates git version tags. |
+| **Official Release** (`release_pipeline.yml`) | Manual dispatch | Creates GitHub release from published build artifacts. |
 
-All pipelines use `fetch-depth: 0` so MinVer can read full git history for versioning.
-
-### Repository Setup (run once after creating from template)
+### Repository Protection Setup (Run Once)
+To enforce PR reviews, linear git history, and CI checks on your repository, run the setup script:
 
 ```bash
-# Requires GitHub CLI: https://cli.github.com
+# Requires GitHub CLI (gh auth login)
 bash scripts/setup-repo.sh
 ```
 
-This sets branch protection on `main`:
-- Blocks direct pushes (including admins)
-- Requires PR with at least 1 approval
-- Requires PR Build to pass
-- Dismisses stale approvals on new commits
+---
 
-### Running a Release
-1. Go to **Actions → Official Release Pipeline → Run workflow**
-2. Optionally enter a **Build Run ID** (from Official Build history) — leave blank for latest
+## 🏭 Production Readiness Checklist
+
+When you are ready to transition from local development to production:
+
+- [ ] **State Persistence:** Swap the development Redis grain storage (`AddRedis`) with your production database provider (e.g. Azure Table Storage, PostgreSQL, CosmosDB, or AWS DynamoDB via `builder.AddAzureTableClient(...)` or standard Orleans storage packages).
+- [ ] **Clustering Provider:** Configure production Orleans clustering for your cloud platform (e.g., Azure Blob/Table, AWS DynamoDB, Kubernetes, or Redis Cluster).
+- [ ] **Telemetry & Monitoring:** Route OpenTelemetry export (`OTEL_EXPORTER_OTLP_ENDPOINT`) to your monitoring platform (e.g., Azure Application Insights, Prometheus/Grafana, Datadog).
+- [ ] **Secrets Management:** Use Azure Key Vault, AWS Secrets Manager, or Kubernetes Secrets instead of local `appsettings.Development.json`.
+- [ ] **Health Probes:** Configure your load balancer or orchestrator (Kubernetes/ACA) to probe `/health` and `/alive`.
 
 ---
 
-## Adding a NuGet Package
-
-1. Add the version to `Directory.Packages.props`:
-   ```xml
-   <PackageVersion Include="Serilog" Version="4.0.0" />
-   ```
-2. Reference it in your `.csproj` **without** a version attribute:
-   ```xml
-   <PackageReference Include="Serilog" />
-   ```
-
+## 📄 License
+Licensed under the [MIT License](LICENSE).
