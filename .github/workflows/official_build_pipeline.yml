@@ -89,6 +89,9 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
         # MinVer reads the tag pushed above → produces a clean version (e.g. 1.2.3)
+      
+      - name: Pre-pull Redis Docker Image
+        run: docker pull redis:latest
 
       - name: Test
         run: |

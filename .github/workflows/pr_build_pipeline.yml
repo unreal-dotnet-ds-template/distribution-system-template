@@ -27,6 +27,9 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
+      
+      - name: Pre-pull Redis Docker Image
+        run: docker pull redis:latest
 
       - name: Test
         run: |
