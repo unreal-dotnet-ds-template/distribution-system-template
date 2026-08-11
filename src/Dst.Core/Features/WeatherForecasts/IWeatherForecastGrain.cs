@@ -5,5 +5,7 @@ namespace Dst.Core.Features.WeatherForecasts;
 [Alias("IWeatherForecastGrain")]
 public interface IWeatherForecastGrain : IGrainWithIntegerKey
 {
-    Task<WeatherForecast[]> GetWeatherForecastsAsync();
+    [Alias("GetWeatherForecastsAsync")]
+    [Id(0)]
+    ValueTask<WeatherForecast[]> GetWeatherForecastsAsync();
 }

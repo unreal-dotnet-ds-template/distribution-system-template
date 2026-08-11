@@ -23,13 +23,13 @@ public class WeatherForecastGrain : Grain, IWeatherForecastGrain
 
     private WeatherForecast[]? _data;
 
-    public Task<WeatherForecast[]> GetWeatherForecastsAsync()
+    public ValueTask<WeatherForecast[]> GetWeatherForecastsAsync()
     {
         if (_data == null)
         {
             _data = Generate();
         }
 
-        return Task.FromResult(_data);
+        return new ValueTask<WeatherForecast[]>(_data);
     }
 }
