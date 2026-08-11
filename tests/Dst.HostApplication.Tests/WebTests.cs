@@ -59,7 +59,9 @@ public class WebTests
 
         // Act
         using var httpClient = app.CreateHttpClient("Dst-web-api");
-        var response = await httpClient.GetAsync(new Uri("/weatherforecast", UriKind.Relative), cancellationToken);
+        var response = await httpClient
+            .GetAsync(new Uri("/weatherforecast", UriKind.Relative), cancellationToken)
+            .WaitAsync(ResourceTimeout, cancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
