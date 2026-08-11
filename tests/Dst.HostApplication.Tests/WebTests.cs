@@ -16,8 +16,11 @@ public class WebTests
     [Fact]
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        var cancellationToken = cts.Token;
+
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
+        _output.WriteLine("[Test] Starting DistributedApplicationTestingBuilder...");
 
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.Dst_Aspires_AppHost>(cancellationToken);
