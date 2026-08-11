@@ -13,7 +13,13 @@ A production-ready `dotnet new` template for building distributed systems with *
 
 ## ⚡ Quickstart
 
+### Prerequisites
+
+> **Important:** Make sure **Docker Desktop** (or Docker Engine) is installed and running before launching the project, as Aspire relies on it to start the Redis container.
+
 Get up and running in 30 seconds:
+
+#### Quick Start
 
 ```bash
 # 1. Install template

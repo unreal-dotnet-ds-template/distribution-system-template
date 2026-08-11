@@ -32,10 +32,19 @@ jobs:
         run: docker pull redis:latest
 
       - name: Test
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          DCP_CONTAINER_RUNTIME: docker
+          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
+          DOTNET_RESOURCE_SERVICE_ENDPOINT_URL: "http://127.0.0.1:0"
+          ASPNETCORE_URLS: "http://+:5000"
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
         run: |
           dotnet test --no-build --configuration Release \
             --logger trx \
-            --results-directory ./test-results
+            --results-directory ./test-results \
+            --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         if: always()

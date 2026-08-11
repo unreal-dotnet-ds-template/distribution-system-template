@@ -7,7 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
-builder.AddKeyedRedisClient("Dst-redis-orleans-clustering");
+builder.AddKeyedRedisClient("Dst-redis-orleans-clustering", (options) =>
+{
+    options.DisableHealthChecks = true;
+});
 builder.UseOrleansClient();
 
 var app = builder.Build();
