@@ -30,9 +30,11 @@ public class WebTests
         await app.StartAsync(cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
 
         // Act
-        using var httpClient = app.CreateHttpClient("web-api");
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("web-api", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
+        using var httpClient = app.CreateHttpClient("Dst-web-api");
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("Dst-web-api", cancellationToken).WaitAsync(DefaultTimeout, cancellationToken);
         var response = await httpClient.GetAsync(new Uri("/weatherforecast", UriKind.Relative), cancellationToken);
+
+        response.EnsureSuccessStatusCode();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

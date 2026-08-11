@@ -27,10 +27,13 @@ jobs:
       - name: Detect version bump
         id: bump
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Last tag: $LAST_TAG"
-
-          COMMITS=$(git log "${LAST_TAG}..HEAD" --format="%s%n%b")
+          if LAST_TAG=$(git describe --tags --abbrev=0 --match="v[0-9]*" 2>/dev/null); then
+            echo "Last tag: $LAST_TAG"
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --format="%s%n%b")
+          else
+            echo "No existing tag found. Inspecting all commits up to HEAD."
+            COMMITS=$(git log HEAD --format="%s%n%b")
+          fi
 
           if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|feat!|fix!)"; then
             BUMP_TYPE=major
@@ -46,11 +49,16 @@ jobs:
       - name: Compute next version
         id: version
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LAST_TAG=$(git describe --tags --abbrev=0 --match="v[0-9]*" 2>/dev/null || echo "v0.0.0")
           VERSION="${LAST_TAG#v}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          BASE_VERSION="${VERSION%%-*}"
+          MAJOR=$(echo "$BASE_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$BASE_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$BASE_VERSION" | cut -d. -f3)
+
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
 
           case "${{ steps.bump.outputs.type }}" in
             major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;

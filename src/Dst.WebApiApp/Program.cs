@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
-builder.AddKeyedRedisClient("redis-orleans-clustering");
+builder.AddKeyedRedisClient("Dst-redis-orleans-clustering");
 builder.UseOrleansClient();
 
 var app = builder.Build();
@@ -17,8 +17,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-
-app.UseHttpsRedirection();
 
 app.MapGet("/weatherforecast", async ([FromServices] IClusterClient clusterClient) =>
 {

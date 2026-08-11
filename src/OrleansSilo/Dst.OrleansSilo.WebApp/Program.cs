@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.AddServiceDefaults();
-builder.AddKeyedRedisClient("redis-orleans-clustering");
+builder.AddKeyedRedisClient("Dst-redis-orleans-clustering");
 
 builder.UseOrleans();
 
@@ -17,6 +17,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.MapDefaultEndpoints();
 
 app.Run();
