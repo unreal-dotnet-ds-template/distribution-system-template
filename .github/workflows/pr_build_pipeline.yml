@@ -42,7 +42,9 @@ jobs:
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
         run: |
           dotnet test --no-build --configuration Release \
-            --logger "console;verbosity=detailed"
+            --logger trx \
+            --results-directory ./test-results
+            --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         if: always()
