@@ -34,6 +34,9 @@ jobs:
       - name: Test
         timeout-minutes: 5
         continue-on-error: true
+        env:
+          DCP_CONTAINER_RUNTIME: docker
+          DOTNET_ASPIRE_CONTAINER_RUNTIME: docker
         run: |
           dotnet test --no-build --configuration Release \
             --logger "console;verbosity=detailed"
