@@ -194,8 +194,68 @@ Building distributed systems traditionally requires managing databases, cache sy
                                  │ Managed by
                      ┌───────────┴────────────┐
                      │   Dst.Aspires.AppHost  │ (Orchestrator + Dashboard)
-                     └────────────────────────┘
+                     └───────────┴────────────┘
 ```
+
+### 🏛️ CQRS & Read-Side Architecture (Best Practices)
+
+When building distributed systems with Orleans, follow the **Command Query Responsibility Segregation (CQRS)** pattern:
+
+```
+                               ┌───────────────────────────┐
+                               │  🌐 Client / UI / Frontend │
+                               └─────────────┬─────────────┘
+                                             │
+                      ┌──────────────────────┴──────────────────────┐
+                      │                                             │
+             [Commands: POST/PUT/DELETE]                  [Queries: GET Lists/Search]
+                      │                                             │
+                      ▼                                             ▼
+       ┌──────────────────────────────┐              ┌──────────────────────────────┐
+       │   Dst.WebApiApp (Commands)   │              │    Dst.WebApiApp (Queries)   │
+       └──────────────┬───────────────┘              └──────────────┬───────────────┘
+                      │                                             │
+                      │ IClusterClient.GetGrain<T>(id)              │ Direct Read Query
+                      ▼                                             │ (Bypasses Orleans)
+       ┌──────────────────────────────┐                             │
+       │    Dst.OrleansSilo.WebApp    │                             │
+       │ 🌾 Grain (Aggregate Root)    │                             │
+       │    - Single-threaded logic   │                             │
+       │    - In-memory state mutation│                             │
+       └──────┬───────────────────────┘                             │
+              │                                                     │
+     ┌────────┴────────┬─────────────────────────┐                  │
+     │                 │ State write             │ Projection /     │
+     ▼                 ▼                         │ Sync Events      │
+┌─────────┐   ┌──────────────────┐               ▼                  │
+│  Redis  │   │  Grain Storage   │    ┌──────────────────────┐      │
+│ Cluster │   │ (Redis/Postgres) │    │  📊 Read Database    │◄─────┘
+└─────────┘   └──────────────────┘    │ (Postgres/Mongo/ES)  │
+                                      └──────────────────────┘
+```
+
+#### The Role of Orleans: Write-Side / Command Engine
+Orleans grains act as **Aggregate Roots** in Domain-Driven Design (DDD). They provide:
+- **Single-threaded execution** per grain (no distributed locks or concurrency race conditions).
+- **In-memory state caching** with automatic activation and lifecycle management.
+- **Strong transactional boundaries** for state mutations and business invariants addressed by a unique ID.
+
+#### The Anti-Pattern: Querying Lists Across Grains
+> [!WARNING]
+> **Do not design list, search, aggregation, or paginated queries across Orleans grains.**
+> 
+> Looping over IDs to invoke hundreds of grains or building "Index/Registry" grains causes:
+> - **Massive memory bloat** by needlessly activating inactive grains into memory.
+> - **High network latency** due to multiple inter-silo RPC hops.
+> - **Silo overload and garbage collection pressure**.
+
+#### The CQRS Pattern Split
+
+| Operation Type | HTTP Method | Data Flow | Responsibility |
+|---|---|---|---|
+| **Commands** | `POST`, `PUT`, `DELETE` | `API` $\rightarrow$ `IClusterClient` $\rightarrow$ `Orleans Grain` $\rightarrow$ State Store & Read Projection | State mutations, business rules, consistency. |
+| **Point Reads** | `GET /items/{id}` | `API` $\rightarrow$ `IClusterClient` $\rightarrow$ `Orleans Grain` (or Read DB) | Fast single-entity reads where strong in-memory state is required. |
+| **List & Search Queries** | `GET /items?filter=...` | `API` $\rightarrow$ `Read Database` (Bypasses Orleans entirely) | Paginated lists, complex joins, full-text search, reporting. |
 
 ---
 
@@ -265,6 +325,12 @@ Versioning is handled automatically based on git history and commit messages:
 | `BREAKING CHANGE:`, `feat!:` | **Major** | `1.2.3` $\rightarrow$ `2.0.0` |
 | `feat:` | **Minor** | `1.2.3` $\rightarrow$ `1.3.0` |
 | `fix:`, `chore:`, `docs:` | **Patch** | `1.2.3` $\rightarrow$ `1.2.4` |
+
+### 5. Cloud-Native Networking & TLS (Why No `UseHttpsRedirection`)
+In `Dst.WebApiApp` and `Dst.OrleansSilo.WebApp`, `app.UseHttpsRedirection()` is intentionally **omitted**:
+- **Edge TLS Termination:** In cloud-native deployments (Kubernetes Ingress, Azure Container Apps, AWS ALB, Nginx, Cloudflare), SSL/TLS termination and public HTTP $\rightarrow$ HTTPS redirection happen at the **Reverse Proxy / Ingress Controller** level. The ingress forwards decrypted traffic over internal HTTP to containers.
+- **Prevents Infinite Redirect Loops:** Enforcing HTTPS redirection inside containers behind reverse proxies can cause infinite 307/308 redirect loops.
+- **Reliable Internal Health Probes:** Container health checks (`/health`, `/alive`) and Aspire orchestrator probes communicate over internal HTTP. Removing redirection ensures probes receive immediate `200 OK` status codes without TLS certificate overhead or redirection errors.
 
 ---
 

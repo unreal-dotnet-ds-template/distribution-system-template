@@ -43,6 +43,8 @@ dotnet new dst-aspire-orleans -n MyPaymentSystem
 # 3. Run everything
 cd MyPaymentSystem
 dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
+
+# 4. Open README.md file to learn what's next
 ```
 
 ---
