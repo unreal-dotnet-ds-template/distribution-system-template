@@ -25,6 +25,15 @@ public class WebTests
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.Dst_Aspires_AppHost>(cancellationToken);
 
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
         appHost.Services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Debug);
