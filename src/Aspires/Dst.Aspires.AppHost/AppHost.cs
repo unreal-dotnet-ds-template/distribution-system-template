@@ -12,6 +12,7 @@ var orleans = builder.AddOrleans("Dst-orleansCluster")
 // orleans silo -> backend. you run logic here.
 var webOrleansSilo = builder.AddProject<Projects.Dst_OrleansSilo_WebApp>("Dst-web-orleans-silo")
     .WithReference(orleans)
+    .WithHttpHealthCheck("/health")
     .WaitFor(redisOrleansClustering)
     .WithReplicas(1);
 
