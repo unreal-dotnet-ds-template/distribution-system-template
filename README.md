@@ -36,6 +36,7 @@ dotnet run --project src/Aspires/Dst.Aspires.AppHost
 Once running:
 - Open the **Aspire Dashboard** (URL displayed in your terminal, e.g. `https://localhost:17228`) to inspect resources, console logs, and OpenTelemetry traces.
 - Access the **Interactive API Reference (Scalar)** at `https://localhost:<port>/scalar/v1` to test endpoints.
+- Access the **Orleans Dashboard** at `https://localhost:<silo-port>/orleans-dashboard` (or via the Silo resource link in Aspire Dashboard) to inspect silos, grain activations, and cluster metrics.
 
 ---
 
@@ -186,9 +187,9 @@ Building distributed systems traditionally requires managing databases, cache sy
                      └───────────┬────────────┘
                                  │ IClusterClient.GetGrain<T>()
                                  ▼
-                     ┌────────────────────────┐
-                     │ Dst.OrleansSilo.WebApp │ (Hosts Dst.Features)
-                     └───────────┬────────────┘
+                      ┌────────────────────────┐
+                      │ Dst.OrleansSilo.WebApp │ (Hosts Dst.Features + Orleans Dashboard)
+                      └───────────┬────────────┘
                                  │
                ┌─────────────────┴─────────────────┐
                ▼                                   ▼
