@@ -1,3 +1,5 @@
+using Orleans.Dashboard;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -10,7 +12,10 @@ builder.AddKeyedRedisClient("Dst-redis-orleans-clustering", (options) =>
     options.DisableHealthChecks = true;
 });
 
-builder.UseOrleans();
+builder.UseOrleans(siloBuilder =>
+{
+    siloBuilder.AddDashboard();
+});
 
 var app = builder.Build();
 
@@ -21,5 +26,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapDefaultEndpoints();
+app.MapOrleansDashboard("/orleans-dashboard");
+app.MapGet("/", () => Results.Redirect("/orleans-dashboard"));
 
 app.Run();

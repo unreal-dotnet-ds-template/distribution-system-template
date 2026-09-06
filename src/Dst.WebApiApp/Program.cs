@@ -19,15 +19,12 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 }
 
-app.MapGet("/weatherforecast", async ([FromServices] IClusterClient clusterClient) =>
+app.MapGet("/weatherforecast/{weekNumber}", async ([FromServices] IClusterClient clusterClient, int weekNumber = 0) =>
 {
-    var currentMinute = DateTime.Now.Minute;
-    var isEven = currentMinute % 2 == 0;
-    var id = isEven ? 1 : 2;
-
-    var grain = clusterClient.GetGrain<IWeatherForecastGrain>(id);
+    var grain = clusterClient.GetGrain<IWeatherForecastGrain>(weekNumber);
     var result = await grain.GetWeatherForecastsAsync().ConfigureAwait(false);
     return Results.Ok(result);
 }).WithName("GetWeatherForecast");
