@@ -31,7 +31,7 @@ public class WebTests
             .WaitForResourceHealthyAsync("Dst-web-api", cancellationToken);
 
         using var httpClient = app.CreateHttpClient("Dst-web-api");
-        var response = await httpClient.GetAsync(new Uri("/weatherforecast", UriKind.Relative), cancellationToken);
+        var response = await httpClient.GetAsync(new Uri("/weatherforecast/0", UriKind.Relative), cancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

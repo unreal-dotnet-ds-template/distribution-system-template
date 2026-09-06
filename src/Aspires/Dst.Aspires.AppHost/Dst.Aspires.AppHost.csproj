@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -7,7 +7,6 @@
     <ProjectReference Include="..\..\Dst.WebApiApp\Dst.WebApiApp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.Orleans" />
     <PackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
