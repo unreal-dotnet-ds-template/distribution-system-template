@@ -27,5 +27,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapDefaultEndpoints();
 app.MapOrleansDashboard("/orleans-dashboard");
+app.MapGet("/", () => Results.Redirect("/orleans-dashboard"));
 
 app.Run();
