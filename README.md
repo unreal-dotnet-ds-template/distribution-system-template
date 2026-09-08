@@ -37,6 +37,8 @@ bash scripts/setup-repo.sh
 
 # 5. Run everything (Aspire Dashboard + Silo + Web API + Redis)
 dotnet run --project src/Aspires/Dst.Aspires.AppHost
+
+# 6. Follow Your First Feature in 5 Minutes guide
 ```
 
 ### 2. Open Dashboards
