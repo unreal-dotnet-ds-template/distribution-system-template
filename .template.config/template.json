@@ -12,6 +12,68 @@
   },
   "sourceName": "Dst",
   "preferNameDirectory": true,
+  "symbols": {
+    "WebApiHttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 5000, "high": 5249 },
+      "replaces": "5252"
+    },
+    "WebApiHttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 7000, "high": 7249 },
+      "replaces": "7299"
+    },
+    "SiloHttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 5300, "high": 5599 },
+      "replaces": "5273"
+    },
+    "SiloHttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 7300, "high": 7599 },
+      "replaces": "7297"
+    },
+    "AspireAppHostHttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 15000, "high": 15299 },
+      "replaces": "15171"
+    },
+    "AspireAppHostHttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 17000, "high": 17299 },
+      "replaces": "17269"
+    },
+    "AspireOtlpHttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 19000, "high": 19299 },
+      "replaces": "19076"
+    },
+    "AspireOtlpHttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 21000, "high": 21299 },
+      "replaces": "21174"
+    },
+    "AspireResourceServiceHttpPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 20000, "high": 20299 },
+      "replaces": "20210"
+    },
+    "AspireResourceServiceHttpsPort": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 22000, "high": 22299 },
+      "replaces": "22022"
+    }
+  },
   "sources": [
     {
       "source": "./",
