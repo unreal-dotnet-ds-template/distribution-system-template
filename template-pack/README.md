@@ -56,4 +56,14 @@ dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
 
 ---
 
+## 🔗 Official Documentation & References
+
+- **Microsoft Orleans:**
+  - [Microsoft Orleans Documentation Hub](https://learn.microsoft.com/en-us/dotnet/orleans/overview) — Official documentation for virtual actors and distributed application development.
+- **.NET Aspire:**
+  - [.NET Aspire Documentation Hub](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) — Official documentation for .NET Aspire orchestration, dashboard, and integrations.
+
+---
+
 🔗 **Full documentation & E2E guide:** [GitHub Repository](https://github.com/unreal-dotnet-ds-template/distribution-system-template)
+

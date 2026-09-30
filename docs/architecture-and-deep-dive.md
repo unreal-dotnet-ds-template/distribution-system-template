@@ -20,32 +20,31 @@ Building distributed systems traditionally requires managing databases, cache sy
 
 ## ⚙️ System Architecture Flow
 
-```
-                     ┌────────────────────────┐
-                     │     HTTP Request       │
-                     └───────────┬────────────┘
-                                 │
-                                 ▼
-                     ┌────────────────────────┐
-                     │     Dst.WebApiApp      │ (Orleans Client + Scalar UI)
-                     └───────────┬────────────┘
-                                 │ IClusterClient.GetGrain<T>()
-                                 ▼
-                       ┌────────────────────────┐
-                       │ Dst.OrleansSilo.WebApp │ (Hosts Dst.Features + Orleans Dashboard)
-                       └───────────┬────────────┘
-                                 │
-               ┌─────────────────┴─────────────────┐
-               ▼                                   ▼
-    ┌──────────────────────┐            ┌──────────────────────┐
-    │ Redis (Clustering)   │            │ Redis (Grain Storage)│
-    └──────────────────────┘            └──────────────────────┘
-               ▲                                   ▲
-               └─────────────────┬─────────────────┘
-                                 │ Managed by
-                     ┌───────────┴────────────┐
-                     │   Dst.Aspires.AppHost  │ (Orchestrator + Dashboard)
-                     └───────────┴────────────┘
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["1. Client Request"]
+        HTTP["🌐 HTTP Request"]
+    end
+
+    subgraph AppHost ["2. Aspire Orchestrated Stack (Dst.Aspires.AppHost)"]
+        subgraph Gateway ["Stateless Web API"]
+            API["Dst.WebApiApp<br/><i>(Orleans Client + Scalar UI)</i>"]
+        end
+
+        subgraph Compute ["Virtual Actor Silo Engine"]
+            SILO["Dst.OrleansSilo.WebApp<br/><i>(Hosts Dst.Features + Orleans Dashboard)</i>"]
+        end
+
+        subgraph Storage ["Backing Infrastructure"]
+            REDIS_C[("Redis<br/><i>(Clustering)</i>")]
+            REDIS_S[("Redis<br/><i>(Grain Storage)</i>")]
+        end
+    end
+
+    HTTP --> API
+    API -->|"IClusterClient.GetGrain&lt;T&gt;()"| SILO
+    SILO --> REDIS_C
+    SILO --> REDIS_S
 ```
 
 ---
@@ -54,38 +53,42 @@ Building distributed systems traditionally requires managing databases, cache sy
 
 When building distributed systems with Orleans, follow the **Command Query Responsibility Segregation (CQRS)** pattern:
 
+```mermaid
+flowchart TD
+    subgraph Client ["Client / UI Layer"]
+        USER["🌐 Client / Frontend"]
+    end
+
+    subgraph Gateway ["Stateless Gateway (Dst.WebApiApp)"]
+        direction LR
+        CMD_API["Command API<br/><i>(POST / PUT / DELETE)</i>"]
+        QRY_API["Query API<br/><i>(GET Lists & Search)</i>"]
+    end
+
+    subgraph WriteSide ["Write Side: Orleans Virtual Actor Engine"]
+        SILO["Dst.OrleansSilo.WebApp<br/>🌾 Grain Aggregate Root<br/><i>• Single-threaded execution<br/>• In-memory state mutation</i>"]
+        
+        subgraph Storage ["Silo Storage Backends"]
+            REDIS_C[("Redis Cluster<br/><i>(Membership)</i>")]
+            GRAIN_STORE[("Grain Storage<br/><i>(Redis / Postgres)</i>")]
+        end
+    end
+
+    subgraph ReadSide ["Read Side: High-Throughput Read Model"]
+        READ_DB[("📊 Read Database<br/><i>(Postgres / Mongo / ES)</i>")]
+    end
+
+    USER -->|"Commands"| CMD_API
+    USER -->|"Queries"| QRY_API
+
+    CMD_API -->|"IClusterClient.GetGrain&lt;T&gt;(id)"| SILO
+    SILO --> REDIS_C
+    SILO -->|"State write"| GRAIN_STORE
+    SILO -.->|"Projection / Event Sync"| READ_DB
+
+    QRY_API -->|"Direct Read Query<br/>(Bypasses Orleans)"| READ_DB
 ```
-                                ┌───────────────────────────┐
-                                │  🌐 Client / UI / Frontend │
-                                └─────────────┬─────────────┘
-                                              │
-                      ┌──────────────────────┴──────────────────────┐
-                      │                                             │
-             [Commands: POST/PUT/DELETE]                  [Queries: GET Lists/Search]
-                      │                                             │
-                      ▼                                             ▼
-       ┌──────────────────────────────┐              ┌──────────────────────────────┐
-       │   Dst.WebApiApp (Commands)   │              │    Dst.WebApiApp (Queries)   │
-       └──────────────┬───────────────┘              └──────────────┬───────────────┘
-                      │                                             │
-                      │ IClusterClient.GetGrain<T>(id)              │ Direct Read Query
-                      ▼                                             │ (Bypasses Orleans)
-       ┌──────────────────────────────┐                             │
-       │    Dst.OrleansSilo.WebApp    │                             │
-       │ 🌾 Grain (Aggregate Root)    │                             │
-       │    - Single-threaded logic   │                             │
-       │    - In-memory state mutation│                             │
-       └──────┬───────────────────────┘                             │
-              │                                                     │
-     ┌────────┴────────┬─────────────────────────┐                  │
-     │                 │ State write             │ Projection /     │
-     ▼                 ▼                         │ Sync Events      │
-┌─────────┐   ┌──────────────────┐               ▼                  │
-│  Redis  │   │  Grain Storage   │    ┌──────────────────────┐      │
-│ Cluster │   │ (Redis/Postgres) │    │  📊 Read Database    │◄─────┘
-└─────────┘   └──────────────────┘    │ (Postgres/Mongo/ES)  │
-                                      └──────────────────────┘
-```
+
 
 ### The Role of Orleans: Write-Side / Command Engine
 Orleans grains act as **Aggregate Roots** in Domain-Driven Design (DDD). They provide:
@@ -184,3 +187,17 @@ Run all tests from the CLI:
 ```bash
 dotnet test
 ```
+
+---
+
+## 🔗 References & Official Documentation
+
+- **Microsoft Orleans Architecture & Concepts:**
+  - [Orleans Grains Documentation](https://learn.microsoft.com/en-us/dotnet/orleans/grains/) — Virtual actor lifecycle, grain identity, and execution model.
+  - [Orleans Silo & Host Configuration](https://learn.microsoft.com/en-us/dotnet/orleans/host/configuration-guide/) — Configuring Silo hosts, dependency injection, and endpoints.
+  - [Orleans Grain Persistence](https://learn.microsoft.com/en-us/dotnet/orleans/grains/grain-persistence/) — State management abstractions and storage providers.
+- **.NET Aspire Architecture & Testing:**
+  - [.NET Aspire AppHost Overview](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/app-host-overview) — Distributed topology definition and resource management.
+  - [.NET Aspire Service Defaults](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/service-defaults) — Standardized OpenTelemetry, health endpoints, and HTTP resilience.
+  - [.NET Aspire Testing Overview](https://learn.microsoft.com/en-us/dotnet/aspire/testing/overview) — In-memory distributed testing using `DistributedApplicationTestingBuilder`.
+
