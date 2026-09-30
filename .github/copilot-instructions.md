@@ -73,3 +73,16 @@ The .NET SDK version (`9.0.300`, `rollForward: latestPatch`) is the single sourc
 | **Official Release** | Manual | Download artifacts, create GitHub Release |
 
 All pipelines use `fetch-depth: 0` for MinVer to read full git history.
+
+## 🔗 Official Documentation References
+
+- **Microsoft Orleans:**
+  - [Orleans Documentation Hub](https://learn.microsoft.com/en-us/dotnet/orleans/overview)
+  - [Orleans Grains](https://learn.microsoft.com/en-us/dotnet/orleans/grains/)
+  - [Orleans Testing Infrastructure](https://learn.microsoft.com/en-us/dotnet/orleans/implementation/testing)
+- **.NET Aspire:**
+  - [.NET Aspire Documentation Hub](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview)
+  - [.NET Aspire AppHost Overview](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/app-host-overview)
+  - [.NET Aspire Service Defaults](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/service-defaults)
+  - [.NET Aspire Testing](https://learn.microsoft.com/en-us/dotnet/aspire/testing/overview)
+

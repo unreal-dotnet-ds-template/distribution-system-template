@@ -88,33 +88,34 @@ Ready to customize the solution and add your own domain logic? Follow the **[5-M
 
 ### System Architecture Flow
 
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["1. Client Request"]
+        HTTP["🌐 HTTP Request"]
+    end
+
+    subgraph AppHost ["2. Aspire Orchestrated Stack (Dst.Aspires.AppHost)"]
+        subgraph Gateway ["Stateless Web API"]
+            API["Dst.WebApiApp<br/><i>(Orleans Client + Scalar UI)</i>"]
+        end
+
+        subgraph Compute ["Virtual Actor Silo Engine"]
+            SILO["Dst.OrleansSilo.WebApp<br/><i>(Hosts Dst.Features + Orleans Dashboard)</i>"]
+        end
+
+        subgraph Storage ["Backing Infrastructure"]
+            REDIS_C[("Redis<br/><i>(Clustering)</i>")]
+            REDIS_S[("Redis<br/><i>(Grain Storage)</i>")]
+        end
+    end
+
+    HTTP --> API
+    API -->|"IClusterClient.GetGrain&lt;T&gt;()"| SILO
+    SILO --> REDIS_C
+    SILO --> REDIS_S
 ```
-                     ┌────────────────────────┐
-                     │     HTTP Request       │
-                     └───────────┬────────────┘
-                                 │
-                                 ▼
-                     ┌────────────────────────┐
-                     │     Dst.WebApiApp      │ (Orleans Client + Scalar UI)
-                     └───────────┬────────────┘
-                                 │ IClusterClient.GetGrain<T>()
-                                 ▼
-                       ┌────────────────────────┐
-                       │ Dst.OrleansSilo.WebApp │ (Hosts Dst.Features + Orleans Dashboard)
-                       └───────────┬────────────┘
-                                 │
-               ┌─────────────────┴─────────────────┐
-               ▼                                   ▼
-    ┌──────────────────────┐            ┌──────────────────────┐
-    │ Redis (Clustering)   │            │ Redis (Grain Storage)│
-    └──────────────────────┘            └──────────────────────┘
-               ▲                                   ▲
-               └─────────────────┬─────────────────┘
-                                 │ Managed by
-                     ┌───────────┴────────────┐
-                     │   Dst.Aspires.AppHost  │ (Orchestrator + Dashboard)
-                     └───────────┴────────────┘
-```
+
+
 
 ## 📚 Deep Dive Documentation
 
@@ -124,5 +125,17 @@ For detailed guides, architecture rationale, and operational manuals, explore th
 2. 🏛️ **[Architecture & Deep Dive](docs/architecture-and-deep-dive.md):** Orleans Virtual Actor model, CQRS read/write split, anti-pattern warnings, CPM, SDK configuration, TLS decisions, and integration testing.
 3. 🏭 **[Production Readiness & Operations](docs/production-readiness.md):** Transition checklist (state storage, clustering, monitoring, secrets), GitHub Actions pipelines, and branch protection setup script.
 
+## 🔗 References & Official Documentation
+
+- **Microsoft Orleans:**
+  - [Microsoft Orleans Overview](https://learn.microsoft.com/en-us/dotnet/orleans/overview) — Virtual Actor model overview and core capabilities.
+  - [Developing Grains in Orleans](https://learn.microsoft.com/en-us/dotnet/orleans/grains/) — Grain lifecycle, identity, and contracts.
+  - [Orleans Dashboard](https://github.com/OrleansContrib/OrleansDashboard) — Operational web dashboard for Orleans cluster metrics.
+- **.NET Aspire:**
+  - [.NET Aspire Overview](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) — Official introduction to cloud-native .NET Aspire applications.
+  - [.NET Aspire AppHost & Orchestration](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/app-host-overview) — Managing resources, containers, and service references.
+  - [.NET Aspire StackExchange Redis Integration](https://learn.microsoft.com/en-us/dotnet/aspire/caching/stackexchange-redis-integration) — Containerized Redis hosting for clustering and state caching.
+
 ## 📄 License
 Licensed under the [MIT License](LICENSE).
+

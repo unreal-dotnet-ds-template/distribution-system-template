@@ -43,3 +43,16 @@ bash scripts/setup-repo.sh
 - **Automated CI Check Gate:** Requires the `Build & Test` workflow status check to pass before merging.
 - **Review Dismissal:** Automatically dismisses stale pull request approvals when new commits are pushed.
 - **CODEOWNERS:** Enforces code owner review requirements when configured.
+
+---
+
+## 🔗 References & Official Documentation
+
+- **Microsoft Orleans Production & Deployment:**
+  - [Orleans Grain Persistence Providers](https://learn.microsoft.com/en-us/dotnet/orleans/grains/grain-persistence/) — Production storage providers (Azure Table, ADO.NET, Cosmos DB).
+  - [Orleans Cluster Management](https://learn.microsoft.com/en-us/dotnet/orleans/host/configuration-guide/) — Production clustering providers and membership table options.
+  - [Orleans Deployment & Hosting](https://learn.microsoft.com/en-us/dotnet/orleans/deployment/) — Hosting Orleans silos in production (Azure, Kubernetes, AWS).
+- **.NET Aspire Production & Operations:**
+  - [.NET Aspire Deployment Overview](https://learn.microsoft.com/en-us/dotnet/aspire/deployment/overview) — Deploying Aspire applications to Azure Container Apps, Kubernetes, and cloud targets.
+  - [.NET Aspire Service Defaults & Observability](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/service-defaults) — Health checks (`/health`, `/alive`), metrics, and OTLP exporter configuration.
+
