@@ -19,7 +19,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
-    app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 }
 
 app.MapGet("/weatherforecast/{weekNumber}", async ([FromServices] IClusterClient clusterClient, int weekNumber = 0) =>

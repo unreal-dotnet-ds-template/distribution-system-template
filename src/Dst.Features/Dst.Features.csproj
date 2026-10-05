@@ -3,6 +3,7 @@
     <ProjectReference Include="..\Dst.Core\Dst.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Server" />
     <PackageReference Include="Microsoft.Orleans.Sdk" />
   </ItemGroup>
 </Project>
