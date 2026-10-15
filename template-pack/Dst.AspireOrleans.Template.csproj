@@ -18,7 +18,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Template pack conventions -->
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <ContentTargetFolders>content</ContentTargetFolders>

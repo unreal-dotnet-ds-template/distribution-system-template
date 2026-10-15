@@ -135,7 +135,7 @@ To add a new package:
 ### 2. Pinned .NET SDK
 The .NET SDK version is pinned in `global.json`. Any update here applies instantly to all developers and CI/CD pipelines:
 ```json
-{ "sdk": { "version": "9.0.300", "rollForward": "latestPatch" } }
+{ "sdk": { "version": "10.0.401", "rollForward": "latestPatch" } }
 ```
 
 ### 3. ServiceDefaults Integration

@@ -1,5 +1,6 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.6.0">
   <PropertyGroup>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
