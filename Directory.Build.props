@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Target framework — change here to upgrade all projects -->
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
     <!-- Language and nullability -->
     <LangVersion>latest</LangVersion>

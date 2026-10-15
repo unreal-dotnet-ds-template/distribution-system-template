@@ -51,7 +51,7 @@ dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
 
 ## 📋 Requirements
 
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker Desktop](https://www.docker.com/) or [Podman](https://podman.io/) (for local Redis clustering container)
 
 ---
