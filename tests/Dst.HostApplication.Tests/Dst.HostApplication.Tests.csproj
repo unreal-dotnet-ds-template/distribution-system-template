@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
@@ -6,7 +6,6 @@
     <!-- CA2007 (ConfigureAwait) conflicts with xUnit1030 in test code; suppress globally for test projects -->
     <NoWarn>$(NoWarn);CA2007</NoWarn>
   </PropertyGroup>
-
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" />
