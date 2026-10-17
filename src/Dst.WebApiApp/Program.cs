@@ -21,11 +21,22 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.MapGet("/weatherforecast/{weekNumber}", async ([FromServices] IClusterClient clusterClient, int weekNumber = 0) =>
+app.MapGet("/weatherforecast", async ([FromServices] IClusterClient clusterClient, [FromQuery] int weekNumber = 0) =>
 {
-    var grain = clusterClient.GetGrain<IWeatherForecastGrain>(weekNumber);
-    var result = await grain.GetWeatherForecastsAsync().ConfigureAwait(false);
-    return Results.Ok(result);
+    var days = Enumerable.Range(0, 7)
+        .Select(offset => DateOnly.FromDateTime(DateTime.Now.AddDays(offset + (weekNumber * 7))))
+        .ToArray();
+
+    var forecasts = days.Select(async day =>
+    {
+        var grain = clusterClient.GetGrain<IWeatherForecastGrain>(day.DayNumber);
+        var forecast = await grain.GetAsync().ConfigureAwait(false);
+        return new { Day = day, Forecast = forecast };
+    });
+
+    var result = await Task.WhenAll(forecasts).ConfigureAwait(false);
+
+    return Results.Ok(result.ToDictionary(x => x.Day, x => x.Forecast));
 }).WithName("GetWeatherForecast");
 
 app.MapDefaultEndpoints();

@@ -2,12 +2,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // orleans storages for clustering and grain storage
 var redisOrleansClustering = builder.AddRedis("Dst-redis-orleans-clustering");
+var redisDefaultStorage = builder.AddRedis("Dst-redis-orleans-default-storage");
 
 // orleans cluster
 var orleans = builder.AddOrleans("Dst-orleansCluster")
     .WithClustering(redisOrleansClustering)
-    .WithGrainStorage("DefaultStore", redisOrleansClustering)
-    .WithGrainStorage("PubSubStore", redisOrleansClustering);
+    .WithGrainStorage("DefaultStore", redisDefaultStorage);
 
 // orleans silo -> backend. you run logic here.
 var webOrleansSilo = builder.AddProject<Projects.Dst_OrleansSilo_WebApp>("Dst-web-orleans-silo")
