@@ -1,3 +1,4 @@
+using Dst.Core;
 using Orleans.Dashboard;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,10 +12,15 @@ builder.AddKeyedRedisClient("Dst-redis-orleans-clustering", (options) =>
 {
     options.DisableHealthChecks = true;
 });
+builder.AddKeyedRedisClient("Dst-redis-orleans-default-storage", (options) =>
+{
+    options.DisableHealthChecks = true;
+});
 
 builder.UseOrleans(siloBuilder =>
 {
     siloBuilder.AddDashboard();
+    siloBuilder.AddRedisGrainStorage(DstConsts.OrleansDefaultStoreKey);
 });
 
 var app = builder.Build();

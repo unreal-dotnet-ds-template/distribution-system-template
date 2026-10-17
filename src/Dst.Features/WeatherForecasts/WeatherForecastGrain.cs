@@ -1,47 +1,43 @@
+using Dst.Core;
 using Dst.Core.Features.WeatherForecasts;
 
 namespace Dst.Features.WeatherForecasts;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1515:Consider making public types internal", Justification = "<Pending>")]
 public class WeatherForecastGrain : Grain, IWeatherForecastGrain
 {
-    private static WeatherForecast[] Generate()
-    {
-        string[] summaries = [
-            "Freezing",
-            "Bracing",
-            "Chilly",
-            "Cool",
-            "Mild",
-            "Warm",
-            "Balmy",
-            "Hot",
-            "Sweltering",
-            "Scorching"
-        ];
+    private readonly IPersistentState<WeatherForecastGrainState> _stateProvider;
 
-#pragma warning disable CA5394 // Random is insecure — acceptable for sample weather data
-        var forecast = Enumerable.Range(1, 5)
-            .Select(index => new WeatherForecast
-            (
-                DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                Random.Shared.Next(-20, 55),
-                summaries[Random.Shared.Next(summaries.Length)]
-            ))
-            .ToArray();
-#pragma warning restore CA5394
-        return forecast;
+    public WeatherForecastGrain(
+        [PersistentState(DstConsts.WeatherForecastsStateKey, DstConsts.OrleansDefaultStoreKey)]
+        IPersistentState<WeatherForecastGrainState> stateProvider)
+    {
+        _stateProvider = stateProvider;
     }
 
-    private WeatherForecast[]? _data;
-
-    public ValueTask<WeatherForecast[]> GetWeatherForecastsAsync()
+    public ValueTask<WeatherForecast> GetAsync()
     {
-        if (_data == null)
+        if(_stateProvider.State.IsInitialized is false)
         {
-            _data = Generate();
+            _stateProvider.State = WeatherForecastHelper.Generate();
         }
 
-        return new ValueTask<WeatherForecast[]>(_data);
+        var result = new WeatherForecast(
+            Date: _stateProvider.State.Date,
+            TemperatureC: _stateProvider.State.TemperatureC,
+            Summary: _stateProvider.State.Summary);
+
+        return new ValueTask<WeatherForecast>(result);
+    }
+
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        await _stateProvider.ReadStateAsync(cancellationToken).ConfigureAwait(true);
+        await base.OnActivateAsync(cancellationToken).ConfigureAwait(true);
+    }
+
+    public override async Task OnDeactivateAsync(DeactivationReason reason, CancellationToken cancellationToken)
+    {
+        await _stateProvider.WriteStateAsync(cancellationToken).ConfigureAwait(true);
+        await base.OnDeactivateAsync(reason, cancellationToken).ConfigureAwait(true);
     }
 }
