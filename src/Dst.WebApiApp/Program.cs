@@ -21,23 +21,71 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.MapGet("/weatherforecast", async ([FromServices] IClusterClient clusterClient, [FromQuery] int weekNumber = 0) =>
+var queriesGroup = app.MapGroup("/api/queries/weather")
+    .WithTags("Weather Forecasts Queries");
+
+queriesGroup.MapGet("{year:int}/forecast", async ([FromServices] IClusterClient clusterClient, [FromRoute] int year) =>
 {
-    var days = Enumerable.Range(0, 7)
-        .Select(offset => DateOnly.FromDateTime(DateTime.Now.AddDays(offset + (weekNumber * 7))))
-        .ToArray();
+    var viewGrain = clusterClient.GetGrain<IWeatherForecastViewGrain>(year);
+    var result = await viewGrain.GetAsync().ConfigureAwait(true);
 
-    var forecasts = days.Select(async day =>
-    {
-        var grain = clusterClient.GetGrain<IWeatherForecastGrain>(day.DayNumber);
-        var forecast = await grain.GetAsync().ConfigureAwait(false);
-        return new { Day = day, Forecast = forecast };
-    });
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
 
-    var result = await Task.WhenAll(forecasts).ConfigureAwait(false);
+queriesGroup.MapGet("{date:datetime}/week", async ([FromServices] IClusterClient clusterClient, [FromRoute] DateOnly date) =>
+{
+    var viewGrain = clusterClient.GetGrain<IWeatherForecastViewGrain>(date.Year);
+    var result = await viewGrain.GetForWeekAsync(date).ConfigureAwait(true);
 
-    return Results.Ok(result.ToDictionary(x => x.Day, x => x.Forecast));
-}).WithName("GetWeatherForecast");
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
+
+queriesGroup.MapGet("{year:int}/months/{month:int}", async ([FromServices] IClusterClient clusterClient, [FromRoute] int year, [FromRoute] int month) =>
+{
+    var viewGrain = clusterClient.GetGrain<IWeatherForecastViewGrain>(year);
+    var result = await viewGrain.GetForMonthAsync(month).ConfigureAwait(true);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
+
+queriesGroup.MapGet("{year:int}/locations", async ([FromServices] IClusterClient clusterClient, [FromRoute] int year) =>
+{
+    var grain = clusterClient.GetGrain<IWeatherForecastViewGrain>(year);
+    var result = await grain.GetLocations().ConfigureAwait(true);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
+
+queriesGroup.MapGet("{date:datetime}/locations/{location:alpha}", async ([FromServices] IClusterClient clusterClient, [FromRoute] string location, [FromRoute] DateOnly date) =>
+{
+    var grain = clusterClient.GetGrain<ICityWeatherGrain>(date.DayNumber, location);
+    var result = await grain.GetAsync().ConfigureAwait(true);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
+
+var commandsGroup = app.MapGroup("/api/commands/weather")
+    .WithTags("Weather Forecasts Commands");
+
+commandsGroup.MapPost("update", async ([FromServices] IClusterClient clusterClient, [FromBody] (DateOnly Date, string Location) data) =>
+{
+    var grain = clusterClient.GetGrain<ICityWeatherGrain>(data.Date.DayOfYear, data.Location);
+    var result = await grain.UpdateAsync().ConfigureAwait(true);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Value)
+        : Results.Problem(result.ErrorMessage);
+});
 
 app.MapDefaultEndpoints();
 

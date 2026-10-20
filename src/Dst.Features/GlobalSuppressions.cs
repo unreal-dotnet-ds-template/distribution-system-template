@@ -6,3 +6,5 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "<Pending>", Scope = "member", Target = "~M:Dst.Features.WeatherForecasts.WeatherForecastHelper.Generate~Dst.Features.WeatherForecasts.WeatherForecastGrainState")]
+[assembly: SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "<Pending>", Scope = "member", Target = "~M:Dst.Features.WeatherForecasts.WeatherForecastHelper.Generate(System.DateOnly,System.String)~Dst.Features.WeatherForecasts.CityWeatherGrainState")]
+[assembly: SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "<Pending>", Scope = "member", Target = "~P:Dst.Features.WeatherForecasts.WeatherForecastViewGrainState.Locations")]
