@@ -1,33 +1,45 @@
-using Dst.Core.Features.WeatherForecasts;
-
 namespace Dst.Features.WeatherForecasts;
 
 public static class WeatherForecastHelper
 {
-    public static WeatherForecastGrainState Generate()
+    private static string[] _summaries = [
+        "Freezing",
+        "Bracing",
+        "Chilly",
+        "Cool",
+        "Mild",
+        "Warm",
+        "Balmy",
+        "Hot",
+        "Sweltering",
+        "Scorching"
+    ];
+
+    private static Dictionary<int, int> _avgTemperatureC = new() {
+        { 1, -14 },
+        { 2, -3 },
+        { 3, 14 },
+        { 4, 20 },
+        { 5, 25 },
+        { 6, 25 },
+        { 7, 29 },
+        { 8, 35 },
+        { 9, 24 },
+        { 10, 18 },
+        { 11, 7 },
+        { 12, -2 }
+    };
+
+    public static CityWeatherGrainState Generate(DateOnly date, string location)
     {
-        string[] summaries = [
-            "Freezing",
-            "Bracing",
-            "Chilly",
-            "Cool",
-            "Mild",
-            "Warm",
-            "Balmy",
-            "Hot",
-            "Sweltering",
-            "Scorching"
-        ];
-
-        var forecast = Enumerable.Range(1, 5)
-            .Select(index => new WeatherForecastGrainState()
-            {
-                IsInitialized = true,
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = summaries[Random.Shared.Next(summaries.Length)]
-            }).ToArray();
-
-        return forecast.First();
+        var res = new CityWeatherGrainState()
+        {
+            IsInitialized = true,
+            Date = date,
+            Location = location,
+            TemperatureC = Random.Shared.Next(_avgTemperatureC[date.Month] - 4, _avgTemperatureC[date.Month] + 4),
+            Summary = _summaries[Random.Shared.Next(_summaries.Length)]
+        };
+        return res;
     }
 }
