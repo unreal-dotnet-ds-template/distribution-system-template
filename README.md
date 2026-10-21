@@ -2,7 +2,7 @@
 
 A production-ready `dotnet new` template for building distributed systems with **.NET Aspire** for cloud-native orchestration and **Microsoft Orleans** for virtual actor business logic.
 
-> 💡 **The 3-Folder Rule:** You only touch three folders to build your application:
+> 💡 **The 3-Folder Rule:** For typical feature work, you mostly work in these three folders:
 > - `src/Dst.Core` — Interfaces, grain contracts, shared DTOs
 > - `src/Dst.Features` — Grain implementations (your business logic)
 > - `src/Dst.WebApiApp` — HTTP endpoints & API routing
@@ -54,7 +54,7 @@ Ready to customize the solution and add your own domain logic? Follow the **[5-M
 
 ## 💡 Key Benefits & Best Practices
 
-- **The 3-Folder Architecture:** Focus strictly on domain interfaces (`Core`), grain logic (`Features`), and API mapping (`WebApiApp`). Zero host or DI boilerplate.
+- **The 3-Folder Architecture:** Most feature work stays in domain interfaces (`Core`), grain logic (`Features`), and API mapping (`WebApiApp`), without requiring host or DI boilerplate.
 - **Central Package Management (CPM):** All package versions are centralized in [Directory.Packages.props](/Directory.Packages.props).
 - **Automatic Versioning (MinVer + Conventional Commits):** Versioning is calculated automatically from git tags and commit history:
   
@@ -81,10 +81,16 @@ Ready to customize the solution and add your own domain logic? Follow the **[5-M
 │       ├── Dst.Aspires.AppHost/         ← ⚙️ [INFRA] Aspire orchestrator
 │       └── Dst.Aspires.ServiceDefaults/ ← ⚙️ [INFRA] OpenTelemetry, health checks, resilience
 ├── tests/
-│   └── Dst.HostApplication.Tests/      ← 🧪 Integration tests against the real AppHost
+│   ├── Dst.Features.Tests/             ← 🧪 Grain behavior tests with Orleans TestCluster
+│   └── Dst.HostApplication.Tests/      ← 🧪 AppHost smoke tests for Scalar and Orleans Dashboard
 ├── docs/                                ← 📖 Deep-dive technical documentation
 └── .github/workflows/                   ← 🚢 CI/CD pipelines (PR build, Official build & release)
 ```
+
+### Test Projects
+
+- **`Dst.Features.Tests`:** For grain and feature behavior tests. It hosts an Orleans `TestCluster` with in-memory grain storage; the current weather-grain test is a scaffold for those tests.
+- **`Dst.HostApplication.Tests`:** Starts the real Aspire AppHost, waits for the API and Silo resources, then checks that Scalar and the Orleans Dashboard respond.
 
 ### System Architecture Flow
 
@@ -122,8 +128,9 @@ flowchart TD
 For detailed guides, architecture rationale, and operational manuals, explore the documentation in [docs](/docs):
 
 1. 🚀 **[Your First Feature in 5 Minutes](docs/first-feature-tutorial.md):** Step-by-step tutorial building a distributed `BankAccount` grain with endpoints and distributed tracing.
-2. 🏛️ **[Architecture & Deep Dive](docs/architecture-and-deep-dive.md):** Orleans Virtual Actor model, CQRS read/write split, anti-pattern warnings, CPM, SDK configuration, TLS decisions, and integration testing.
-3. 🏭 **[Production Readiness & Operations](docs/production-readiness.md):** Transition checklist (state storage, clustering, monitoring, secrets), GitHub Actions pipelines, and branch protection setup script.
+2. 📊 **[Read Projections with Orleans](docs/read-projections-with-orleans.md):** Understand actor-based state, the cost of broad query fan-out, projection alternatives, and consistency trade-offs.
+3. 🏛️ **[Architecture & Deep Dive](docs/architecture-and-deep-dive.md):** Orleans Virtual Actor model, read-side architecture, CPM, SDK configuration, TLS decisions, and integration testing.
+4. 🏭 **[Production Readiness & Operations](docs/production-readiness.md):** Transition checklist (state storage, clustering, monitoring, secrets), GitHub Actions pipelines, and branch protection setup script.
 
 ## 🔗 References & Official Documentation
 
@@ -138,4 +145,3 @@ For detailed guides, architecture rationale, and operational manuals, explore th
 
 ## 📄 License
 Licensed under the [MIT License](LICENSE).
-
