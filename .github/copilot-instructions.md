@@ -8,11 +8,10 @@ dotnet restore
 dotnet build --no-restore --configuration Release
 dotnet test --no-build --configuration Release
 
+# Tests use xUnit v3 on Microsoft.Testing.Platform (opted in via global.json)
 # Run a single test class or method
-dotnet test --no-build --configuration Release --filter "FullyQualifiedName~WebTests"
+dotnet test --no-build --configuration Release --filter-class "*WebTests"
 
-# Run tests with coverage
-dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage"
 ```
 
 > **Note:** `TreatWarningsAsErrors=true` is set globally — all analyzer and style warnings are build errors.

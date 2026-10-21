@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     name: Version, Build, Test & Publish Artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -104,9 +104,8 @@ jobs:
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
         run: |
           dotnet test --no-build --configuration Release \
-            --logger trx \
-            --results-directory ./test-results \
-            --collect:"XPlat Code Coverage"
+            --report-xunit-trx \
+            --results-directory ./test-results
 
       - name: Upload test results
         if: always()
