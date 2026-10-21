@@ -5,7 +5,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -53,11 +55,20 @@ public static class ServiceDefaultsExtensions
         });
 
         builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddAttributes(
+            [
+                new KeyValuePair<string, object>("app.cell.id", builder.Configuration["APP_CELL_ID"] ?? "local"),
+                new KeyValuePair<string, object>("app.build.number", builder.Configuration["BUILD_NUMBER"] ?? "local"),
+                new KeyValuePair<string, object>(
+                    "service.instance.id",
+                    $"{Environment.MachineName}:{Environment.ProcessId}")
+            ]))
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
+                    .AddMeter("System.Runtime")
                     .AddMeter("Microsoft.Orleans"); // Orleans metrics
             })
             .WithTracing(tracing =>

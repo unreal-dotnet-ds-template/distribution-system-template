@@ -10,7 +10,7 @@ Before launching your solution to a live environment, review and execute the fol
 
 - [ ] **State Persistence:** Replace the Orleans grain-storage provider configured in the Silo (currently `AddRedisGrainStorage("DefaultStore")`) with a provider suitable for your production environment, such as Azure Table, ADO.NET, Cosmos DB, or DynamoDB. Adding an Aspire resource or database client alone does not configure Orleans grain storage; register the matching Orleans provider and point `DefaultStore` to it.
 - [ ] **Clustering Provider:** Configure production Orleans clustering for your cloud platform (e.g., Azure Blob/Table, AWS DynamoDB, Kubernetes, or Redis Cluster).
-- [ ] **Telemetry & Monitoring:** Route OpenTelemetry export (`OTEL_EXPORTER_OTLP_ENDPOINT`) to your monitoring platform (e.g., Azure Application Insights, Prometheus/Grafana, Datadog).
+- [ ] **Telemetry & Monitoring:** Route OpenTelemetry export (`OTEL_EXPORTER_OTLP_ENDPOINT`) to your monitoring platform (e.g., Azure Application Insights, Prometheus/Grafana, Datadog). The local Grafana dashboard and how to carry it over are described in [Observability](observability.md).
 - [ ] **Secrets Management:** Replace local `appsettings.Development.json` secrets with Azure Key Vault, AWS Secrets Manager, or Kubernetes Secrets.
 - [ ] **Health Probes (optional):** If your deployment needs application health probes, expose and secure the endpoints for the environments you deploy. In this template, `MapDefaultEndpoints()` maps them only in Development: `/health` checks all registered health checks, while `/alive` checks only health checks tagged `live`. Enable them in other environments only if they fit your deployment and security requirements.
 
