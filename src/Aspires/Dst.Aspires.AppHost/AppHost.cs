@@ -3,8 +3,10 @@ using Aspire.Hosting.ApplicationModel;
 var builder = DistributedApplication.CreateBuilder(args);
 
 // orleans storages for clustering and grain storage
-var redisOrleansClustering = builder.AddRedis("Dst-redis-orleans-clustering");
-var redisDefaultStorage = builder.AddRedis("Dst-redis-orleans-default-storage");
+var redisOrleansClustering = builder.AddRedis("Dst-redis-orleans-clustering")
+    .WithRedisInsight();
+var redisDefaultStorage = builder.AddRedis("Dst-redis-orleans-default-storage")
+    .WithRedisInsight();
 
 var otelCollector = builder.AddContainer("otel-collector", "otel/opentelemetry-collector-contrib:0.163.1")
     .WithArgs("--config=/etc/otelcol-contrib/config.yaml")
