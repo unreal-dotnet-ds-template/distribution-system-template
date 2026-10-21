@@ -44,6 +44,7 @@ dotnet run --project src/Aspires/Dst.Aspires.AppHost
 ### 2. Open Dashboards
 
 - **Aspire Dashboard:** Open the URL displayed in your terminal (e.g. `https://localhost:17228`) to inspect resources, console logs, and OpenTelemetry traces.
+- **Grafana:** Open the `grafana` endpoint shown in the Aspire Dashboard for the ready-made cluster dashboard ([details](docs/observability.md)).
 - **Interactive API Reference (Scalar):** Access `https://localhost:<port>/scalar/v1` to test endpoints.
 - **Orleans Dashboard:** Access `https://localhost:<silo-port>/orleans-dashboard` to inspect silos, grain activations, and cluster metrics.
 
@@ -129,8 +130,9 @@ For detailed guides, architecture rationale, and operational manuals, explore th
 
 1. 🚀 **[Your First Feature in 5 Minutes](docs/first-feature-tutorial.md):** Step-by-step tutorial building a distributed `BankAccount` grain with endpoints and distributed tracing.
 2. 📊 **[Read Projections with Orleans](docs/read-projections-with-orleans.md):** Understand actor-based state, the cost of broad query fan-out, projection alternatives, and consistency trade-offs.
-3. 🏛️ **[Architecture & Deep Dive](docs/architecture-and-deep-dive.md):** Orleans Virtual Actor model, read-side architecture, CPM, SDK configuration, TLS decisions, and integration testing.
-4. 🏭 **[Production Readiness & Operations](docs/production-readiness.md):** Transition checklist (state storage, clustering, monitoring, secrets), GitHub Actions pipelines, and branch protection setup script.
+3. 🔭 **[Observability](docs/observability.md):** The local Grafana dashboard: what each panel means and how to carry it to production.
+4. 🏛️ **[Architecture & Deep Dive](docs/architecture-and-deep-dive.md):** Orleans Virtual Actor model, read-side architecture, CPM, SDK configuration, TLS decisions, and integration testing.
+5. 🏭 **[Production Readiness & Operations](docs/production-readiness.md):** Transition checklist (state storage, clustering, monitoring, secrets), GitHub Actions pipelines, and branch protection setup script.
 
 ## 🔗 References & Official Documentation
 
