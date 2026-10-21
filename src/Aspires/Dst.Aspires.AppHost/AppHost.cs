@@ -8,17 +8,17 @@ var redisDefaultStorage = builder.AddRedis("Dst-redis-orleans-default-storage");
 
 var otelCollector = builder.AddContainer("otel-collector", "otel/opentelemetry-collector-contrib:0.163.1")
     .WithArgs("--config=/etc/otelcol-contrib/config.yaml")
-    .WithContainerFiles("/etc/otelcol-contrib", "observability\\otel-collector")
+    .WithContainerFiles("/etc/otelcol-contrib", "observability/otel-collector")
     .WithHttpEndpoint(targetPort: 4318, name: "otlp-http");
 
 var prometheus = builder.AddContainer("prometheus", "prom/prometheus:v3.15.0")
     .WithArgs("--config.file=/etc/prometheus/prometheus.yml")
-    .WithContainerFiles("/etc/prometheus", "observability\\prometheus")
+    .WithContainerFiles("/etc/prometheus", "observability/prometheus")
     .WithHttpEndpoint(targetPort: 9090, name: "http")
     .WaitFor(otelCollector);
 
 var grafana = builder.AddContainer("grafana", "grafana/grafana:13.2.4")
-    .WithContainerFiles("/etc/grafana/provisioning", "observability\\grafana\\provisioning")
+    .WithContainerFiles("/etc/grafana/provisioning", "observability/grafana/provisioning")
     .WithBindMount("observability/grafana/dashboards", "/var/lib/grafana/dashboards", isReadOnly: true)
     .WithHttpEndpoint(targetPort: 3000, name: "http")
     .WithEnvironment("GF_AUTH_ANONYMOUS_ENABLED", "true")
