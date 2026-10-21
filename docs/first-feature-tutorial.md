@@ -102,11 +102,9 @@ Open the **Aspire Dashboard** (URL displayed in your terminal) and navigate to *
 
 ## 🎯 What Did You Achieve?
 
-By following these 4 steps, you built a production-grade distributed architecture with zero infrastructure friction:
+This tutorial demonstrates the end-to-end request path: HTTP request → API → Orleans grain. It is a learning example, not a production-ready account system. The balance lives only in the grain's memory, so it is not durable across deactivation or a silo restart.
 
-1. **Isolated Business Logic in Orleans Silo (`Dst.Features`):** Your domain logic lives in the Silo host (`Dst.OrleansSilo.WebApp`). Grains execute in-memory with single-threaded thread safety. As workload grows, Silo nodes can be independently replicated to scale background processing.
-2. **Stateless Gateway Layer (`Dst.WebApiApp`):** The HTTP API performs no business logic—it simply forwards calls to the Orleans cluster via `IClusterClient`. It can be independently replicated to handle high HTTP request volume.
-3. **Local Cloud-Native Orchestration (`Dst.Aspires.AppHost`):** .NET Aspire orchestrates the API, Silo host, Redis containers, and OpenTelemetry tracing automatically, letting you run a multi-service production topology locally with a single `dotnet run`.
+To make account balances durable, add Orleans grain persistence and choose a storage provider for your deployment. The tutorial keeps the grain deliberately small so you can focus on contracts, grain calls, and the API-to-Orleans flow.
 
 ---
 
@@ -118,4 +116,3 @@ By following these 4 steps, you built a production-grade distributed architectur
 - **.NET Aspire (Orchestration & Caching):**
   - [.NET Aspire Overview](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) — Getting started with .NET Aspire local orchestration.
   - [.NET Aspire StackExchange Redis Integration](https://learn.microsoft.com/en-us/dotnet/aspire/caching/stackexchange-redis-integration) — Local containerized Redis setup for state and clustering.
-

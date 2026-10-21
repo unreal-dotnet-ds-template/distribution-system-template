@@ -27,7 +27,7 @@ This template eliminates the setup overhead: you get a fully functional, orchest
 - 🔭 **Zero-Friction Local Execution:** .NET Aspire boots Redis, the Orleans Silo, Web API, and the telemetry dashboard with a single command.
 - 🧩 **The 3-Folder Rule:** All business logic lives in just 3 projects (`Core`, `Features`, `WebApiApp`). Infrastructure and hosting remain untouched.
 - 🧪 **Built-in E2E & Functional Testing:** Test full distributed flows using Aspire's test hosting library in C# without third-party test runners.
-- 📦 **Modern .NET Repository Standards:** Central Package Management (`Directory.Packages.props`), pinned .NET 9 SDK, MinVer semantic versioning, and GitHub Actions CI/CD.
+- 📦 **Modern .NET Repository Standards:** Central Package Management (`Directory.Packages.props`), pinned .NET 10 SDK, MinVer semantic versioning, and GitHub Actions CI/CD.
 
 ---
 
@@ -66,4 +66,3 @@ dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
 ---
 
 🔗 **Full documentation & E2E guide:** [GitHub Repository](https://github.com/unreal-dotnet-ds-template/distribution-system-template)
-
