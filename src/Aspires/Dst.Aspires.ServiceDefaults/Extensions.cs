@@ -1,3 +1,5 @@
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,17 +50,21 @@ public static class ServiceDefaultsExtensions
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        var buildInfo = BuildInfo.From(builder.Configuration);
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
+            logging.AddProcessor(new BuildInfoLogProcessor(buildInfo));
         });
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddAttributes(
             [
-                new KeyValuePair<string, object>("app.cell.id", builder.Configuration["APP_CELL_ID"] ?? "local"),
-                new KeyValuePair<string, object>("app.build.number", builder.Configuration["BUILD_NUMBER"] ?? "local"),
+                new KeyValuePair<string, object>(BuildInfo.CellIdTag, buildInfo.CellId),
+                new KeyValuePair<string, object>(BuildInfo.BuildNumberTag, buildInfo.BuildNumber),
+                new KeyValuePair<string, object>("service.version", buildInfo.BuildNumber),
                 new KeyValuePair<string, object>(
                     "service.instance.id",
                     $"{Environment.MachineName}:{Environment.ProcessId}")
@@ -73,7 +79,8 @@ public static class ServiceDefaultsExtensions
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
+                tracing.AddProcessor(new BuildInfoActivityProcessor(buildInfo))
+                    .AddSource(builder.Environment.ApplicationName)
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>
@@ -101,12 +108,12 @@ public static class ServiceDefaultsExtensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
+        // Azure Monitor / Application Insights, authenticated with the app's managed identity (AZURE_CLIENT_ID).
+        if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            builder.Services.AddOpenTelemetry()
+               .UseAzureMonitor(options => options.Credential = new DefaultAzureCredential());
+        }
 
         return builder;
     }
@@ -125,7 +132,8 @@ public static class ServiceDefaultsExtensions
         ArgumentNullException.ThrowIfNull(app);
         // Adding health checks endpoints to applications in non-development environments has security implications.
         // See https://aka.ms/aspire/healthchecks for details before enabling these endpoints in non-development environments.
-        if (app.Environment.IsDevelopment())
+        // Azure deployments opt in with HealthChecks__Enabled=true (the public API is additionally restricted to Front Door).
+        if (app.Environment.IsDevelopment() || string.Equals(app.Configuration["HealthChecks:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
         {
             // All health checks must pass for app to be considered ready to accept traffic after starting
             app.MapHealthChecks(HealthEndpointPath);

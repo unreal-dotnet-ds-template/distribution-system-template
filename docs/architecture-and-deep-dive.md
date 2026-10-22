@@ -11,7 +11,7 @@ Building distributed systems traditionally requires managing databases, cache sy
 | Challenge | Traditional Microservices | With Orleans + Aspire (This Template) |
 |---|---|---|
 | **State & Concurrency** | Manual DB transactions, distributed locks, cache invalidation | **Virtual Actors (Orleans):** Single-threaded execution per grain, in-memory state, auto-activation/deactivation. |
-| **Local Development** | Wrestling `docker-compose.yml`, port collisions, service start delays | **.NET Aspire Orchestration:** Redis, Silos, APIs, and OpenTelemetry boot with a single `dotnet run`. |
+| **Local Development** | Wrestling `docker-compose.yml`, port collisions, service start delays | **.NET Aspire Orchestration:** Azurite, Silos, APIs, and OpenTelemetry boot with a single `dotnet run`. |
 | **Project Clutter** | Dozens of boilerplate files, complex DI setup for every service | **The 3-Folder Rule:** Focus only on `Core`, `Features`, and `WebApiApp`. Infrastructure stays untouched. |
 | **Testing** | Heavy test containers, flaky network mocking | **Native Integration Tests:** Full-solution integration testing via Aspire `DistributedApplicationTestingBuilder` and in-memory Orleans `TestCluster`. |
 | **Maintenance** | Package version drift, inconsistent build flags | **Modern .NET Standards:** Central Package Management (CPM), pinned .NET 10 SDK, and automated MinVer semantic releases. |
@@ -36,8 +36,8 @@ flowchart TD
         end
 
         subgraph Storage ["Backing Infrastructure"]
-            REDIS_C[("Redis<br/><i>(Clustering)</i>")]
-            REDIS_S[("Redis<br/><i>(Grain Storage)</i>")]
+            REDIS_C[("Azure Tables<br/><i>(Clustering)</i>")]
+            REDIS_S[("Azure Blobs<br/><i>(Grain Storage)</i>")]
         end
     end
 

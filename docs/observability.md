@@ -28,7 +28,11 @@ Two dropdowns at the top narrow everything down: **Cell** and **Build number**.
 
 **Build.** Every metric also carries the build number. When latency jumps after a deployment, you can compare builds directly.
 
-Set both before starting the AppHost. Each defaults to `local`:
+In Azure both come from the deployment: the build number is the git tag version without the `v` prefix (tag `v1.2.3` -> image tag `1.2.3` -> `BUILD_NUMBER=1.2.3`). The same value is the assembly version (MinVer) and is reported as `service.version`.
+
+Besides the metric labels, every **log record and trace span** (including logs written inside grains and Orleans grain-call spans) carries `app.cell.id` and `app.build.number`. In Application Insights they show up as custom dimensions on traces and requests/dependencies; metrics keep the build only as a resource attribute, which Prometheus uses as a label locally.
+
+Locally, set both before starting the AppHost (each defaults to `local`):
 
 ```bash
 APP_CELL_ID=eu-1

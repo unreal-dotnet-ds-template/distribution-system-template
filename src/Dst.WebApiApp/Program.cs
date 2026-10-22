@@ -1,28 +1,46 @@
 using Dst.Core.Features.WeatherForecasts;
+using Dst.WebApiApp.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
-builder.AddKeyedRedisClient("Dst-redis-orleans-clustering", (options) =>
+builder.AddFrontDoorForwardedHeaders();
+var authOptions = builder.AddDstAuthentication();
+builder.Services.AddRateLimiter(limiter =>
 {
-    options.DisableHealthChecks = true;
+    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    limiter.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue("RateLimit:PermitsPerMinute", 600),
+                Window = TimeSpan.FromMinutes(1),
+            }));
 });
+builder.AddKeyedAzureTableServiceClient("Dst-orleans-clustering");
 builder.UseOrleansClient();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseFrontDoorOnly();
+app.UseRateLimiter();
+app.UseDstAuthentication(authOptions);
+
+// Docs are served in every environment; set Docs__Enabled=false to turn them off.
+if (app.Configuration.GetValue("Docs:Enabled", true))
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(scalar => scalar.ConfigureDstScalar(authOptions)).AllowAnonymous();
 }
 
 var queriesGroup = app.MapGroup("/api/queries/weather")
-    .WithTags("Weather Forecasts Queries");
+    .WithTags("Weather Forecasts Queries")
+    .RequireDstAuthorization(authOptions);
 
 queriesGroup.MapGet("{year:int}/forecast", async ([FromServices] IClusterClient clusterClient, [FromRoute] int year) =>
 {
@@ -75,7 +93,8 @@ queriesGroup.MapGet("{date:datetime}/locations/{location:alpha}", async ([FromSe
 });
 
 var commandsGroup = app.MapGroup("/api/commands/weather")
-    .WithTags("Weather Forecasts Commands");
+    .WithTags("Weather Forecasts Commands")
+    .RequireDstAuthorization(authOptions);
 
 commandsGroup.MapPost("update", async ([FromServices] IClusterClient clusterClient, [FromBody] (DateOnly Date, string Location) data) =>
 {

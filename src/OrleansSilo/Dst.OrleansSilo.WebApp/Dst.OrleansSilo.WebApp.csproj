@@ -8,8 +8,9 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Orleans.Server" />
     <PackageReference Include="Microsoft.Orleans.Dashboard" />
-    <PackageReference Include="Microsoft.Orleans.Clustering.Redis" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.Redis" />
-    <PackageReference Include="Aspire.StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.AzureStorage" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AzureStorage" />
+    <PackageReference Include="Aspire.Azure.Data.Tables" />
+    <PackageReference Include="Aspire.Azure.Storage.Blobs" />
   </ItemGroup>
 </Project>

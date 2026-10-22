@@ -89,9 +89,6 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
         # MinVer reads the tag pushed above → produces a clean version (e.g. 1.2.3)
-      
-      - name: Pre-pull Redis Docker Image
-        run: docker pull redis:latest
 
       - name: Test
         timeout-minutes: 3
@@ -128,6 +125,53 @@ jobs:
           path: ./publish
           if-no-files-found: error
 
+      # ── Deployment artifacts (nothing is deployed or pushed to Azure here) ────
+      # Container images are saved as archives; the release pipeline pushes them
+      # to the cell's registry, which only exists after provisioning.
+      - name: Build container image archives
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p ./deploy-artifacts/images
+          dotnet publish src/Dst.WebApiApp/Dst.WebApiApp.csproj --configuration Release \
+            -t:PublishContainer -r linux-x64 --self-contained false \
+            -p:ContainerRepository=dst-web-api -p:ContainerImageTags=$VERSION \
+            -p:ContainerArchiveOutputPath=$PWD/deploy-artifacts/images/dst-web-api.tar.gz
+          dotnet publish src/OrleansSilo/Dst.OrleansSilo.WebApp/Dst.OrleansSilo.WebApp.csproj --configuration Release \
+            -t:PublishContainer -r linux-x64 --self-contained false \
+            -p:ContainerRepository=dst-web-orleans-silo -p:ContainerImageTags=$VERSION \
+            -p:ContainerArchiveOutputPath=$PWD/deploy-artifacts/images/dst-web-orleans-silo.tar.gz
+
+      - name: Install Aspire CLI
+        run: |
+          curl -sSL https://aspire.dev/install.sh | bash
+          echo "$HOME/.aspire/bin" >> "$GITHUB_PATH"
+
+      # Generates Bicep from the AppHost. cellId/buildNumber become Bicep parameters (placeholders here).
+      - name: Generate Bicep from AppHost
+        env:
+          Parameters__cellId: placeholder
+          Parameters__buildNumber: placeholder
+          Parameters__frontDoorId: placeholder
+          Parameters__registryName: placeholder
+          Parameters__registryResourceGroup: placeholder
+          Parameters__authMode: placeholder
+          Parameters__authAuthority: placeholder
+          Parameters__authAudience: placeholder
+          Parameters__authScalarClientId: placeholder
+          Parameters__authScalarScope: placeholder
+          Parameters__docsEnabled: placeholder
+        run: |
+          aspire publish --apphost src/Aspires/Dst.Aspires.AppHost/Dst.Aspires.AppHost.csproj \
+            -o ./deploy-artifacts/infra -c Release
+          cp -r src/Aspires/Dst.Aspires.AppHost/deploy ./deploy-artifacts/deploy
+          echo "${{ steps.version.outputs.version }}" > ./deploy-artifacts/version.txt
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: deploy-artifacts
+          path: ./deploy-artifacts
+          if-no-files-found: error
       - name: Summary
         run: |
           echo "### ✅ Build complete" >> "$GITHUB_STEP_SUMMARY"

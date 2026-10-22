@@ -9,14 +9,41 @@ on:
           Leave empty to use the latest successful build automatically.
         required: false
         type: string
+      create_github_release:
+        description: Create a draft GitHub Release for this build
+        required: false
+        type: boolean
+        default: true
+      deploy_mode:
+        description: |
+          Azure deployment mode.
+          none = no Azure deployment;
+          full = provision all resources (global + cells), then register the new app version in ACA;
+          deploy_only = skip provisioning, only register the new app version in ACA.
+        required: true
+        type: choice
+        default: none
+        options:
+          - none
+          - full
+          - deploy_only
+      cell_keys:
+        description: Comma separated cell keys from the catalog in deploy/main.bicep (e.g. cell_1_westus,cell_2_eastus)
+        required: false
+        type: string
+        default: cell_1_westus
 
 permissions:
   contents: write  # needed to create GitHub Releases
+  id-token: write  # needed for Azure OIDC login
 
 jobs:
   release:
     name: Download & Release
     runs-on: ubuntu-24.04
+    outputs:
+      run_id: ${{ steps.resolve.outputs.run_id }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout
@@ -59,11 +86,98 @@ jobs:
           echo "Releasing version: $VERSION from run ${{ steps.resolve.outputs.run_id }}"
 
       - name: Create GitHub Release
+        if: ${{ inputs.create_github_release }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ steps.version.outputs.version }}"
+          # the build pipeline already pushed tag v<version>; --verify-tag makes sure no second tag is created
+          TAG="v${{ steps.version.outputs.version }}"
           gh release create "$TAG" ./artifacts/** \
+            --verify-tag \
             --title "Release $TAG" \
             --notes "Released from build run [${{ steps.resolve.outputs.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.resolve.outputs.run_id }})" \
             --draft
+
+  deploy:
+    name: Deploy to Azure (${{ inputs.deploy_mode }})
+    if: ${{ inputs.deploy_mode != 'none' }}
+    needs: release
+    runs-on: ubuntu-24.04
+    environment: azure
+    env:
+      APP_VERSION: ${{ needs.release.outputs.version }}
+      # Web API auth/docs: configure as variables of the GitHub environment 'azure' (all optional, default = anonymous API)
+      REGISTRY_SKU: ${{ vars.REGISTRY_SKU || 'Basic' }}
+      FRONT_DOOR_SKU: ${{ vars.FRONT_DOOR_SKU || 'Standard_AzureFrontDoor' }}
+      PROVISION_AUTH_APP: ${{ vars.PROVISION_AUTH_APP || 'false' }}
+      AUTH_MODE: ${{ vars.AUTH_MODE || 'None' }}
+      AUTH_AUTHORITY: ${{ vars.AUTH_AUTHORITY }}
+      AUTH_AUDIENCE: ${{ vars.AUTH_AUDIENCE }}
+      AUTH_SCALAR_CLIENT_ID: ${{ vars.AUTH_SCALAR_CLIENT_ID }}
+      AUTH_SCALAR_SCOPE: ${{ vars.AUTH_SCALAR_SCOPE }}
+      DOCS_ENABLED: ${{ vars.DOCS_ENABLED || 'true' }}
+      DEPLOYMENT_LOCATION: westeurope  # only where deployment metadata is stored; resources use the cell regions
+
+    steps:
+      - name: Download deployment artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: deploy-artifacts
+          path: ./deploy-artifacts
+          run-id: ${{ needs.release.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prepare parameters
+        run: |
+          CELL_KEYS=$(echo "${{ inputs.cell_keys }}" | tr -d ' ' | jq -R -c 'split(",") | map(select(length > 0))')
+          echo "CELL_KEYS=$CELL_KEYS" >> "$GITHUB_ENV"
+          echo "DEPLOYER_PRINCIPAL_ID=$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)" >> "$GITHUB_ENV"
+
+      # deploy/main.bicepparam reads DEPLOY_MODE, CELL_KEYS, APP_VERSION and DEPLOYER_PRINCIPAL_ID from the environment.
+      # The global registry must exist before images can be pushed, so 'full' is run as provision_only -> push (once) -> deploy_only.
+      - name: Provision resources (global + cells)
+        if: ${{ inputs.deploy_mode == 'full' }}
+        env:
+          DEPLOY_MODE: provision_only
+        run: |
+          az deployment sub create \
+            --name "dst-provision-${APP_VERSION}" \
+            --location "$DEPLOYMENT_LOCATION" \
+            --parameters ./deploy-artifacts/deploy/main.bicepparam
+
+      # The image is registered once in the global registry; cells then enable it (next step).
+      - name: Push images to the global registry (once)
+        run: |
+          ACR=$(az acr list -g dst-global --query "[0].name" -o tsv)
+          if [ -z "$ACR" ]; then
+            echo "No global registry found. Run with deploy_mode=full first." >&2
+            exit 1
+          fi
+          SERVER=$(az acr show -n "$ACR" --query loginServer -o tsv)
+          # role assignments can take a while to propagate
+          for i in 1 2 3 4 5 6; do az acr login --name "$ACR" && break; sleep 20; done
+          docker load -i ./deploy-artifacts/images/dst-web-api.tar.gz
+          docker load -i ./deploy-artifacts/images/dst-web-orleans-silo.tar.gz
+          for IMAGE in dst-web-api dst-web-orleans-silo; do
+            if az acr repository show --name "$ACR" --image "$IMAGE:$APP_VERSION" -o none 2>/dev/null; then
+              echo "$IMAGE:$APP_VERSION is already registered, skipping."
+              continue
+            fi
+            docker tag "$IMAGE:$APP_VERSION" "$SERVER/$IMAGE:$APP_VERSION"
+            for i in 1 2 3 4 5 6; do docker push "$SERVER/$IMAGE:$APP_VERSION" && break; echo "Retrying push..."; sleep 20; done
+          done
+      - name: Register new app version in ACA
+        env:
+          DEPLOY_MODE: deploy_only
+        run: |
+          az deployment sub create \
+            --name "dst-apps-${APP_VERSION}" \
+            --location "$DEPLOYMENT_LOCATION" \
+            --parameters ./deploy-artifacts/deploy/main.bicepparam

@@ -7,14 +7,14 @@ A production-ready `dotnet new` template for building distributed systems with *
 > - `src/Dst.Features` — Grain implementations (your business logic)
 > - `src/Dst.WebApiApp` — HTTP endpoints & API routing
 >
-> Everything else (Silo hosting, Redis clustering, OpenTelemetry, health checks) is preconfigured infrastructure.
+> Everything else (Silo hosting, Azure Storage clustering, OpenTelemetry, health checks) is preconfigured infrastructure.
 
 
 ## ⚡ Quickstart
 
 ### Prerequisites
 
-Make sure **Docker Desktop** (or Docker Engine) is installed and running, as .NET Aspire relies on it to start the Redis container.
+Make sure **Docker Desktop** (or Docker Engine) is installed and running, as .NET Aspire relies on it to start the Azurite (Azure Storage emulator) container.
 
 ### 1. Install & Create Project
 
@@ -35,7 +35,7 @@ git tag v0.1.0
 # 4. (Optional) Protect main branch on GitHub (requires GitHub CLI: gh auth login)
 bash scripts/setup-repo.sh
 
-# 5. Run everything (Aspire Dashboard + Silo + Web API + Redis)
+# 5. Run everything (Aspire Dashboard + Silo + Web API + Azurite)
 dotnet run --project src/Aspires/Dst.Aspires.AppHost
 
 # 6. Follow Your First Feature in 5 Minutes guide
@@ -111,8 +111,8 @@ flowchart TD
         end
 
         subgraph Storage ["Backing Infrastructure"]
-            REDIS_C[("Redis<br/><i>(Clustering)</i>")]
-            REDIS_S[("Redis<br/><i>(Grain Storage)</i>")]
+            REDIS_C[("Azure Tables<br/><i>(Clustering)</i>")]
+            REDIS_S[("Azure Blobs<br/><i>(Grain Storage)</i>")]
         end
     end
 
@@ -143,7 +143,7 @@ For detailed guides, architecture rationale, and operational manuals, explore th
 - **.NET Aspire:**
   - [.NET Aspire Overview](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) — Official introduction to cloud-native .NET Aspire applications.
   - [.NET Aspire AppHost & Orchestration](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/app-host-overview) — Managing resources, containers, and service references.
-  - [.NET Aspire StackExchange Redis Integration](https://learn.microsoft.com/en-us/dotnet/aspire/caching/stackexchange-redis-integration) — Containerized Redis hosting for clustering and state caching.
+  - [.NET Aspire Azure Storage Integration](https://learn.microsoft.com/en-us/dotnet/aspire/storage/azure-storage-integrations) — Azurite locally and Azure Storage when published, for clustering and grain state.
 
 ## 📄 License
 Licensed under the [MIT License](LICENSE).

@@ -4,7 +4,7 @@ This guide walks you through building a distributed **BankAccount** feature (`De
 
 ## Prerequisites
 
-> **Important:** Ensure **Docker Desktop** (or Docker Engine) is installed and running, as .NET Aspire relies on it to launch the Redis container for Orleans clustering and state storage.
+> **Important:** Ensure **Docker Desktop** (or Docker Engine) is installed and running, as .NET Aspire relies on it to launch the Azurite storage emulator container for Orleans clustering and state storage.
 
 ## Step 1: Define the Contract in `Dst.Core`
 
@@ -115,4 +115,4 @@ To make account balances durable, add Orleans grain persistence and choose a sto
   - [Orleans External Clients & IClusterClient](https://learn.microsoft.com/en-us/dotnet/orleans/grains/external-tasks-and-grains) — Connecting frontends and APIs to an Orleans cluster via `IClusterClient`.
 - **.NET Aspire (Orchestration & Caching):**
   - [.NET Aspire Overview](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) — Getting started with .NET Aspire local orchestration.
-  - [.NET Aspire StackExchange Redis Integration](https://learn.microsoft.com/en-us/dotnet/aspire/caching/stackexchange-redis-integration) — Local containerized Redis setup for state and clustering.
+  - [.NET Aspire Azure Storage Integration](https://learn.microsoft.com/en-us/dotnet/aspire/storage/azure-storage-integrations) — Local Azurite setup for state and clustering.

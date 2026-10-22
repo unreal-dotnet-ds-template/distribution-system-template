@@ -11,12 +11,14 @@
   <ItemGroup Label="Orleans">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.20.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
   </ItemGroup>
   <ItemGroup Label="Orleans-Test">
@@ -34,15 +36,19 @@
   <ItemGroup Label="Orleans-Silo">
     <PackageVersion Include="Microsoft.Orleans.Server" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Orleans.Dashboard" Version="10.4.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.Redis" Version="10.4.0" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.Redis" Version="10.4.0" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.6.2" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="10.4.0" />
+    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.6.2" />
   </ItemGroup>
   <ItemGroup Label="Orleans-Client">
     <PackageVersion Include="Microsoft.Orleans.Client" Version="10.4.0" />
   </ItemGroup>
   <ItemGroup Label="Aspire-Orleans">
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Network" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.6.2" />
     <PackageVersion Include="Aspire.Hosting.Orleans" Version="13.6.2" />
   </ItemGroup>
   <ItemGroup Label="Transient">

@@ -17,14 +17,14 @@ A pre-configured .NET solution template that combines **Microsoft Orleans** (for
 
 Setting up a distributed Orleans system usually requires configuring clustering, silo hosting, grain storage, local containers, service discovery, and OpenTelemetry from scratch.
 
-This template eliminates the setup overhead: you get a fully functional, orchestrated distributed system with Redis clustering and OpenTelemetry running in seconds.
+This template eliminates the setup overhead: you get a fully functional, orchestrated distributed system with Azure Storage clustering and OpenTelemetry running in seconds.
 
 ---
 
 ## ✨ Key Benefits
 
 - 🎭 **Orleans Virtual Actors:** Build distributed, concurrent business logic without manual lock management, cache invalidation, or database boilerplate.
-- 🔭 **Zero-Friction Local Execution:** .NET Aspire boots Redis, the Orleans Silo, Web API, and the telemetry dashboard with a single command.
+- 🔭 **Zero-Friction Local Execution:** .NET Aspire boots Azurite, the Orleans Silo, Web API, and the telemetry dashboard with a single command.
 - 🧩 **The 3-Folder Rule:** All business logic lives in just 3 projects (`Core`, `Features`, `WebApiApp`). Infrastructure and hosting remain untouched.
 - 🧪 **Built-in E2E & Functional Testing:** Test full distributed flows using Aspire's test hosting library in C# without third-party test runners.
 - 📦 **Modern .NET Repository Standards:** Central Package Management (`Directory.Packages.props`), pinned .NET 10 SDK, MinVer semantic versioning, and GitHub Actions CI/CD.
@@ -52,7 +52,7 @@ dotnet run --project src/Aspires/MyPaymentSystem.Aspires.AppHost
 ## 📋 Requirements
 
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Docker Desktop](https://www.docker.com/) or [Podman](https://podman.io/) (for local Redis clustering container)
+- [Docker Desktop](https://www.docker.com/) or [Podman](https://podman.io/) (for local Azurite storage emulator container)
 
 ---
 

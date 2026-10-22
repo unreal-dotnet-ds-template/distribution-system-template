@@ -9,23 +9,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.AddServiceDefaults();
-builder.AddKeyedRedisClient("Dst-redis-orleans-clustering", (options) =>
-{
-    options.DisableHealthChecks = true;
-});
-builder.AddKeyedRedisClient("Dst-redis-orleans-default-storage", (options) =>
-{
-    options.DisableHealthChecks = true;
-});
+builder.AddKeyedAzureTableServiceClient("Dst-orleans-clustering");
+builder.AddKeyedAzureBlobServiceClient("Dst-orleans-grainstate");
 
 builder.UseOrleans(siloBuilder =>
 {
     siloBuilder.AddDashboard();
-    siloBuilder.AddRedisGrainStorage(DstConsts.OrleansDefaultStoreKey);
+    siloBuilder.AddAzureBlobGrainStorage(DstConsts.OrleansDefaultStoreKey);
 });
 
-//builder.Services.AddHostedService<InitWeatherBackgroundService>();
-//builder.Services.AddHostedService<RandomUpdateWeatherBackgroundService>();
+builder.Services.AddHostedService<InitWeatherBackgroundService>();
+builder.Services.AddHostedService<RandomUpdateWeatherBackgroundService>();
 
 var app = builder.Build();
 
