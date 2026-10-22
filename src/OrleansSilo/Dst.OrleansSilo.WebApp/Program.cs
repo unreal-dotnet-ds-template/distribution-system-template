@@ -18,8 +18,8 @@ builder.UseOrleans(siloBuilder =>
     siloBuilder.AddAzureBlobGrainStorage(DstConsts.OrleansDefaultStoreKey);
 });
 
-builder.Services.AddHostedService<InitWeatherBackgroundService>();
-builder.Services.AddHostedService<RandomUpdateWeatherBackgroundService>();
+//builder.Services.AddHostedService<InitWeatherBackgroundService>();
+//builder.Services.AddHostedService<RandomUpdateWeatherBackgroundService>();
 
 var app = builder.Build();
 
