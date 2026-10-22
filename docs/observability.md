@@ -92,4 +92,6 @@ The dashboard queries use PromQL, which is the part that changes in production. 
 2. **Point OTLP somewhere else.** Set `OTEL_EXPORTER_OTLP_ENDPOINT` to your monitoring platform, for example Azure Application Insights.
 3. **Rewrite the queries for that store.** For Application Insights, Grafana's Azure Monitor data source uses KQL instead of PromQL. The layout and panels stay the same.
 
+The template already does this: with `GRAFANA_ENABLED=true` the deployment creates Azure Managed Grafana and imports `src/Aspires/Dst.Aspires.AppHost/deploy/grafana/cell-overview.azure.json`, a KQL version of the dashboard. See "Dashboards in Azure" in the [deployment README](../src/Aspires/Dst.Aspires.AppHost/deploy/README.md).
+
 The Prometheus and collector containers are for local use. See [Production Readiness](production-readiness.md) for the full checklist.

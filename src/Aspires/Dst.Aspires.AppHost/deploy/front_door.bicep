@@ -31,7 +31,7 @@ resource profile 'Microsoft.Cdn/profiles@2024-02-01' = {
 
 resource endpoint 'Microsoft.Cdn/profiles/afdEndpoints@2024-02-01' = {
   parent: profile
-  name: '${profileName}-api'
+  name: 'dst-api-ep'
   location: 'global'
   properties: {
     enabledState: 'Enabled'
@@ -40,7 +40,7 @@ resource endpoint 'Microsoft.Cdn/profiles/afdEndpoints@2024-02-01' = {
 
 resource originGroup 'Microsoft.Cdn/profiles/originGroups@2024-02-01' = {
   parent: profile
-  name: 'web-api'
+  name: 'dst-web-api-og'
   properties: {
     loadBalancingSettings: {
       sampleSize: 4
@@ -59,7 +59,8 @@ resource originGroup 'Microsoft.Cdn/profiles/originGroups@2024-02-01' = {
 
 resource originEntries 'Microsoft.Cdn/profiles/originGroups/origins@2024-02-01' = [for origin in origins: {
   parent: originGroup
-  name: origin.name
+  // Front Door origin names allow only letters, digits and hyphens (cell keys contain underscores)
+  name: '${replace(origin.name, '_', '-')}-origin'
   properties: {
     hostName: origin.hostName
     originHostHeader: origin.hostName
@@ -73,7 +74,7 @@ resource originEntries 'Microsoft.Cdn/profiles/originGroups/origins@2024-02-01' 
 
 resource route 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
   parent: endpoint
-  name: 'default'
+  name: 'dst-default-route'
   dependsOn: [
     originEntries
   ]
@@ -116,13 +117,16 @@ resource waf 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@2024-02-
           ruleSetVersion: '1.1'
         }
       ]
-    } : null
+    } : {
+      // Standard SKU has no managed rule sets, but the property itself is required.
+      managedRuleSets: []
+    }
   }
 }
 
 resource security 'Microsoft.Cdn/profiles/securityPolicies@2024-02-01' = {
   parent: profile
-  name: 'waf'
+  name: 'dst-waf-sp'
   properties: {
     parameters: {
       type: 'WebApplicationFirewall'

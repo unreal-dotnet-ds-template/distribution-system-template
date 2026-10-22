@@ -1,0 +1,1402 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "The 10 application grain types with the most active instances (in memory) right now.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "axisPlacement": "auto"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "No grains",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 30
+      },
+      "id": 30,
+      "options": {
+        "orientation": "horizontal",
+        "xField": "Grain type",
+        "xTickLabelRotation": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by ['Grain type'] = g | top 10 by Active desc"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Active",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Top 10 grain types",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "How active application grains are spread across silos right now. A lopsided pie means uneven load.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      },
+      "id": 31,
+      "options": {
+        "pieType": "pie",
+        "displayLabels": [
+          "name",
+          "value"
+        ],
+        "legend": {
+          "showLegend": false
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^Active$/",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by Instance = AppRoleInstance"
+          }
+        }
+      ],
+      "title": "Active grains per silo",
+      "type": "piechart"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 21,
+      "options": {
+        "mode": "markdown",
+        "content": "## General"
+      },
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 22,
+      "options": {
+        "mode": "markdown",
+        "content": "## Service resources"
+      },
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Average Web API response time over the last 5 minutes. Health probes are excluded. Yellow above 500 ms, red above 1 s.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "noValue": "No traffic",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 2
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where Name == 'http.server.request.duration' and AppRoleName endswith '/dst-web-api' | where tostring(Properties['http.route']) !in ('/health', '/alive') | summarize v = sum(Sum) / sum(ItemCount)"
+          }
+        }
+      ],
+      "title": "Avg response time",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Web API replicas currently reporting metrics.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 2
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '/dst-web-api' | summarize Instances = dcount(AppRoleInstance)"
+          }
+        }
+      ],
+      "title": "Web API instances",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Silo replicas currently reporting metrics.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 2
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '/dst-web-orleans-silo' | summarize Instances = dcount(AppRoleInstance)"
+          }
+        }
+      ],
+      "title": "Silo instances",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Average Web API requests per second over the last 5 minutes. Health probes are excluded.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "decimals": 1,
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 2
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where Name == 'http.server.request.duration' and AppRoleName endswith '/dst-web-api' | where tostring(Properties['http.route']) !in ('/health', '/alive') | summarize v = sum(ItemCount) / 300.0"
+          }
+        }
+      ],
+      "title": "Avg requests / sec",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Internal failures (HTTP 5xx) from the Web API and the silo in the last 5 minutes. Green means none.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 2
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where Name == 'http.server.request.duration' | where toint(Properties['http.response.status_code']) >= 500 | summarize v = sum(ItemCount)"
+          }
+        }
+      ],
+      "title": "Failures (5 min)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Application grains currently in memory across all silos. System grains are excluded.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 2
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize v = sum(Sum)"
+          }
+        }
+      ],
+      "title": "Active grains",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No traffic yet",
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failures per second"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg response time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "response time"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'http.server.request.duration' | where tostring(Properties['http.route']) !in ('/health', '/alive') | extend status = tostring(Properties['http.response.status_code']) | where status !startswith '5' | summarize ['Requests per second'] = sum(ItemCount) / 60.0 by bin(TimeGenerated, 1m), ['HTTP status'] = status | order by TimeGenerated asc"
+          }
+        },
+        {
+          "refId": "B",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'http.server.request.duration' | extend status = toint(Properties['http.response.status_code']) | summarize ['Failures per second'] = sumif(ItemCount, status >= 500) / 60.0, ['Avg response time'] = sumif(Sum, AppRoleName endswith '/dst-web-api' and tostring(Properties['http.route']) !in ('/health', '/alive')) / sumif(ItemCount, AppRoleName endswith '/dst-web-api' and tostring(Properties['http.route']) !in ('/health', '/alive')) by bin(TimeGenerated, 1m) | order by TimeGenerated asc"
+          }
+        }
+      ],
+      "description": "Requests per second by service and HTTP status code, plus failures per second (HTTP 5xx, red), on the left axis; Web API average response time on the right axis. Health probes are excluded from requests.",
+      "title": "Traffic, failures and latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "description": "Share of instances (Web API and silo together) running each build. A deployment shows up as one build replacing another. Ignores the build filter.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "percent"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | summarize Instances = dcount(AppRoleInstance) by bin(TimeGenerated, 1m), ['Build (revision)'] = AppVersion | order by TimeGenerated asc"
+          }
+        }
+      ],
+      "title": "Build version",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 20,
+      "options": {
+        "mode": "markdown",
+        "content": "## Silos"
+      },
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "min": 0,
+          "decimals": 1,
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              }
+            ],
+            "matcher": {
+              "options": "CPU",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ],
+            "matcher": {
+              "options": "Memory (working set)",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ],
+            "matcher": {
+              "options": "GC heap",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ],
+            "matcher": {
+              "options": "Threads",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ],
+            "matcher": {
+              "options": "Queued work",
+              "id": "byName"
+            }
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Instance",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '/dst-web-api'; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dotnet.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dotnet.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; cpu | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = max_of(Q, 0.0) | order by Instance asc"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "Instance": 0,
+              "CPU": 1,
+              "Memory (working set)": 2,
+              "GC heap": 3,
+              "Threads": 4,
+              "Queued work": 5
+            },
+            "renameByName": {}
+          },
+          "id": "organize"
+        }
+      ],
+      "description": "One row per Dst-web-api process: CPU is the share of the cores available to that process, memory is the OS working set, GC heap is the managed heap after the last collection. Threads and queued work are .NET thread pool; queued work staying above 0 means the process is saturated.",
+      "title": "Web APIs",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "min": 0,
+          "decimals": 1,
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              }
+            ],
+            "matcher": {
+              "options": "CPU",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ],
+            "matcher": {
+              "options": "Memory (working set)",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ],
+            "matcher": {
+              "options": "GC heap",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ],
+            "matcher": {
+              "options": "Threads",
+              "id": "byName"
+            }
+          },
+          {
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ],
+            "matcher": {
+              "options": "Queued work",
+              "id": "byName"
+            }
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Instance",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "table",
+            "resources": [
+              "$cell"
+            ],
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '/dst-web-orleans-silo'; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dotnet.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dotnet.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; cpu | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = max_of(Q, 0.0) | order by Instance asc"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "Instance": 0,
+              "CPU": 1,
+              "Memory (working set)": 2,
+              "GC heap": 3,
+              "Threads": 4,
+              "Queued work": 5
+            },
+            "renameByName": {}
+          },
+          "id": "organize"
+        }
+      ],
+      "description": "One row per Dst-web-orleans-silo process: CPU is the share of the cores available to that process, memory is the OS working set, GC heap is the managed heap after the last collection. Threads and queued work are .NET thread pool; queued work staying above 0 means the process is saturated.",
+      "title": "Silos",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "0",
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Deactivated"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg grain call latency"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "mode": "none",
+                  "group": "A"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "grain call latency"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "let active = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, g | summarize Active = sum(v) by TimeGenerated | where TimeGenerated < bin(now(), 1m) - 2m | order by TimeGenerated asc | extend delta = Active - prev(Active); let created = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activation-created' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize Created = sum(Sum) by bin(TimeGenerated, 1m); let latency = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-app-requests-latency' | summarize ['Avg grain call latency'] = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m); active | join kind=leftouter created on TimeGenerated | join kind=leftouter latency on TimeGenerated | project TimeGenerated, Active, Deactivated = max_of(coalesce(Created, 0.0) - coalesce(delta, 0.0), 0.0), ['Avg grain call latency'] | order by TimeGenerated asc"
+          }
+        }
+      ],
+      "description": "Application grains currently in memory across all silos (Active) and grains unloaded after going idle in each interval (Deactivated), on the left axis. System grains are excluded. Deactivations are derived: grains created minus the change in live grains. The dashed line (right axis) is the average grain call latency across the cell.",
+      "title": "Active and deactivated grains",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "decimals": 0,
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "sortBy": "Last *",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where not(g !startswith 'sys.' and g !in ('dashboard', 'management')) | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, ['Grain type'] = g | summarize Activations = sum(v) by TimeGenerated, ['Grain type'] | order by TimeGenerated asc"
+          }
+        }
+      ],
+      "description": "Orleans internal grains (sys.*, dashboard, management), one stacked bar segment per system grain type, summed across silos. Usually flat; a change means silo topology changed.",
+      "title": "System grain activations",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 41,
+  "tags": [
+    "aspire",
+    "opentelemetry"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "cell",
+        "label": "Cell",
+        "type": "custom",
+        "query": "__CELL_OPTIONS__",
+        "current": {},
+        "options": [],
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cell overview (Azure)",
+  "uid": "dst-cell-overview",
+  "version": 1
+}

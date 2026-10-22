@@ -6,7 +6,7 @@
 targetScope = 'resourceGroup'
 extension microsoftGraphV1
 
-@description('Front Door profile and its endpoint (<profileName>-api) already deployed in this resource group.')
+@description('Front Door profile and its endpoint (dst-api-ep) already deployed in this resource group.')
 param frontDoorProfileName string
 
 @description('Prefix of the app registration names/unique names.')
@@ -20,7 +20,7 @@ resource frontDoor 'Microsoft.Cdn/profiles@2024-02-01' existing = {
   name: frontDoorProfileName
 
   resource endpoint 'afdEndpoints' existing = {
-    name: '${frontDoorProfileName}-api'
+    name: 'dst-api-ep'
   }
 }
 

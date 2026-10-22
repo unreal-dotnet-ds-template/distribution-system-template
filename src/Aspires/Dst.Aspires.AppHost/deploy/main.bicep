@@ -30,6 +30,13 @@ param appVersion string
 @description('Object id of the identity running the deployment (granted rights by the Aspire-generated resources).')
 param deployerPrincipalId string = ''
 
+@description('Type of the deploying identity: ServicePrincipal (GitHub pipeline) or User (local run with az login).')
+@allowed([
+  'ServicePrincipal'
+  'User'
+])
+param deployerPrincipalType string = 'ServicePrincipal'
+
 @description('Create the Entra ID app registrations (API + Scalar SPA) with Bicep and use them for auth (forces JwtBearer). Needs Graph permission Application.ReadWrite.OwnedBy for the deployer. When false, the auth* params below are used as given.')
 param provisionAuthApp bool = false
 
@@ -56,13 +63,13 @@ param authScalarScope string = ''
 param docsEnabled string = 'true'
 
 @description('Resource group of the global resources.')
-param globalResourceGroupName string = 'dst-global'
+param globalResourceGroupName string = 'dst-global-rg'
 
 @description('Location of the global resource group (Front Door itself is global).')
 param globalLocation string = 'westeurope'
 
 @description('Front Door profile name.')
-param frontDoorProfileName string = 'dst-frontdoor'
+param frontDoorProfileName string = 'dst-afd'
 
 @description('Registry SKU. Basic is the cheap default; Premium geo-replicates images to every cell region (production).')
 @allowed([
@@ -78,10 +85,20 @@ param registrySku string = 'Basic'
 ])
 param frontDoorSku string = 'Standard_AzureFrontDoor'
 
-@description('Name of the global container registry (globally unique, alphanumeric).')
-param registryName string = 'dstreg${uniqueString(subscription().id, globalResourceGroupName)}'
+@description('Name of the global container registry (globally unique, 5-50 alphanumeric characters, so no separators).')
+param registryName string = 'dst${uniqueString(subscription().id, globalResourceGroupName)}acr'
 
-// Cell catalog: key -> cell id + Azure region. A cell lives in resource group dst-<cellId>-<region>.
+@description('Create an Azure Managed Grafana instance with the cell dashboard (opt-in: it has a monthly cost).')
+param grafanaEnabled bool = false
+
+@description('Managed Grafana tier.')
+@allowed([
+  'Standard'
+  'Essential'
+])
+param grafanaSku string = 'Standard'
+
+// Cell catalog: key -> cell id + Azure region. A cell lives in resource group dst-<cellId>-<region>-rg.
 // Add further cells here, e.g.:
 //   cell_2_eastus: { cellId: '2', region: 'eastus' }
 //   cell_3_northeurope: { cellId: '3', region: 'northeurope' }
@@ -96,7 +113,7 @@ var cells = [for key in cellKeys: {
   key: key
   cellId: cellCatalog[key].cellId
   region: cellCatalog[key].region
-  resourceGroupName: 'dst-${cellCatalog[key].cellId}-${cellCatalog[key].region}'
+  resourceGroupName: 'dst-${cellCatalog[key].cellId}-${cellCatalog[key].region}-rg'
 }]
 
 var provisionResources = mode == 'full' || mode == 'provision_only'
@@ -117,6 +134,7 @@ module globalRegistry 'global_resources.bicep' = if (provisionResources) {
     registrySku: registrySku
     replicaLocations: [for cell in cells: cell.region]
     pusherPrincipalId: deployerPrincipalId
+    pusherPrincipalType: deployerPrincipalType
     includeFrontDoor: false
   }
 }
@@ -146,11 +164,55 @@ module globalFrontDoor 'global_resources.bicep' = if (provisionResources) {
     registrySku: registrySku
     replicaLocations: [for cell in cells: cell.region]
     pusherPrincipalId: deployerPrincipalId
+    pusherPrincipalType: deployerPrincipalType
     includeFrontDoor: true
     frontDoorSku: frontDoorSku
     origins: [for (cell, i) in cells: {
       name: cell.key
       hostName: cellResources[i]!.outputs.webApiHostName
+    }]
+  }
+}
+
+// 3b. Optional: Managed Grafana with the cell dashboard. Needs the cell resource groups (role assignments),
+// so it runs after the cell resources; the import script runs after the roles exist.
+module grafana 'grafana.bicep' = if (grafanaEnabled && provisionResources) {
+  name: 'global-grafana'
+  scope: globalRg
+  params: {
+    name: 'dst-${take(uniqueString(subscription().id, globalResourceGroupName), 8)}-amg'
+    location: globalLocation
+    sku: grafanaSku
+    adminPrincipalId: deployerPrincipalId
+    adminPrincipalType: deployerPrincipalType
+  }
+}
+
+module grafanaAccess 'grafana_access.bicep' = [for (cell, i) in cells: if (grafanaEnabled && provisionResources) {
+  name: 'grafana-access-${cell.key}'
+  scope: resourceGroup(cell.resourceGroupName)
+  dependsOn: [
+    cellResources
+  ]
+  params: {
+    grafanaPrincipalId: grafana!.outputs.grafanaPrincipalId
+    scriptPrincipalId: grafana!.outputs.scriptIdentityPrincipalId
+  }
+}]
+
+module grafanaDashboard 'grafana_dashboard.bicep' = if (grafanaEnabled && provisionResources) {
+  name: 'global-grafana-dashboard'
+  scope: globalRg
+  dependsOn: [
+    grafanaAccess
+  ]
+  params: {
+    location: globalLocation
+    grafanaName: grafana!.outputs.name
+    scriptIdentityId: grafana!.outputs.scriptIdentityId
+    cells: [for cell in cells: {
+      cellId: cell.cellId
+      resourceGroupName: cell.resourceGroupName
     }]
   }
 }
@@ -176,7 +238,6 @@ module cellApps 'cell_apps.bicep' = [for cell in cells: if (deployApps) {
   dependsOn: [
     cellResources
     globalFrontDoor
-    authApp
   ]
   params: {
     cellId: cell.cellId
@@ -199,3 +260,5 @@ output cellResourceGroups array = [for cell in cells: {
 }]
 
 output registryName string = registryName
+
+output grafanaEndpoint string = grafanaEnabled && provisionResources ? grafana!.outputs.endpoint : ''
