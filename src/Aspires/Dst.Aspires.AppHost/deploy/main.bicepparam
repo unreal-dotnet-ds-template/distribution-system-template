@@ -5,6 +5,7 @@ param mode = readEnvironmentVariable('DEPLOY_MODE', 'deploy_only')
 param cellKeys = json(readEnvironmentVariable('CELL_KEYS', '["cell_1_westus"]'))
 param appVersion = readEnvironmentVariable('APP_VERSION', 'dev')
 param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
+param deployerPrincipalType = readEnvironmentVariable('DEPLOYER_PRINCIPAL_TYPE', 'ServicePrincipal')
 
 // Web API auth (None = anonymous API) and docs. Set from GitHub environment variables by the release pipeline.
 param provisionAuthApp = bool(readEnvironmentVariable('PROVISION_AUTH_APP', 'false'))
@@ -16,3 +17,5 @@ param authScalarScope = readEnvironmentVariable('AUTH_SCALAR_SCOPE', '')
 param docsEnabled = readEnvironmentVariable('DOCS_ENABLED', 'true')
 param registrySku = readEnvironmentVariable('REGISTRY_SKU', 'Basic')
 param frontDoorSku = readEnvironmentVariable('FRONT_DOOR_SKU', 'Standard_AzureFrontDoor')
+param grafanaEnabled = bool(readEnvironmentVariable('GRAFANA_ENABLED', 'false'))
+param grafanaSku = readEnvironmentVariable('GRAFANA_SKU', 'Standard')

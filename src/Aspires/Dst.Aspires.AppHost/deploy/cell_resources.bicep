@@ -24,4 +24,4 @@ module cell '../infra/main.bicep' = {
 }
 
 // Public host name of the Web API, used as the Front Door origin.
-output webApiHostName string = 'dst-web-api.${cell.outputs.aca_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}'
+output webApiHostName string = 'dst-web-api-ca.${cell.outputs.aca_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}'

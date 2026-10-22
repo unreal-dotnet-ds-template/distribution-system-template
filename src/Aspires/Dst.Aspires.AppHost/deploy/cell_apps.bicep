@@ -1,10 +1,10 @@
 // Cell apps: Web API + Orleans silo of one cell, deployed into the cell's resource group (created by cell_resources.bicep).
 // Everything else (ACA environment, storage, identities, Application Insights) comes from the
-// Aspire-generated ../infra/main.bicep. Resource names below mirror Aspire's deterministic naming
-// (<name>-uniqueString(resourceGroup().id)); if the AppHost resource names change, update them here.
+// Aspire-generated ../infra/main.bicep. Resource names below mirror the names set in AppHost.cs
+// (ConfigureInfrastructure); if they change there, update them here.
 targetScope = 'resourceGroup'
 
-@description('Cell id, e.g. "1". The resource group is dst-<cellId>-<region>.')
+@description('Cell id, e.g. "1". The resource group is dst-<cellId>-<region>-rg.')
 param cellId string
 
 @description('App version: reported as BUILD_NUMBER and used as the image tag in the cell registry.')
@@ -13,7 +13,7 @@ param appVersion string
 @description('Resource group of the global Front Door profile.')
 param globalResourceGroupName string
 
-param frontDoorProfileName string = 'dst-frontdoor'
+param frontDoorProfileName string = 'dst-afd'
 
 @description('Global registry holding the images.')
 param authMode string = 'None'
@@ -50,7 +50,7 @@ var webApiImage = '${acr.properties.loginServer}/dst-web-api:${appVersion}'
 var siloImage = '${acr.properties.loginServer}/dst-web-orleans-silo:${appVersion}'
 
 resource aca 'Microsoft.App/managedEnvironments@2025-07-01' existing = {
-  name: take('aca${suffix}', 24)
+  name: 'dst-cae'
 }
 
 resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
@@ -58,29 +58,30 @@ resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   scope: resourceGroup(globalResourceGroupName)
 }
 
+// Created implicitly by Aspire for the ACA environment (name not configurable from the AppHost).
 resource acrIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: take('aca_mi-${suffix}', 128)
 }
 
 resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  name: take('dststorage${suffix}', 24)
+  name: 'dst${suffix}st'
 }
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
-  name: take('Dstlogs-${suffix}', 63)
+  name: 'dst-log'
 }
 
 resource apiIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: take('Dst_web_api_identity-${suffix}', 128)
+  name: 'dst-web-api-id'
 }
 
 resource siloIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: take('Dst_web_orleans_silo_identity-${suffix}', 128)
+  name: 'dst-web-orleans-silo-id'
 }
 
 // Same definition as the Aspire-generated module, plus Entra-only ingestion (no instrumentation keys).
 resource insights 'Microsoft.Insights/components@2020-02-02' = {
-  name: take('Dst_insights-${suffix}', 260)
+  name: 'dst-appi'
   kind: 'web'
   location: resourceGroup().location
   properties: {
@@ -170,4 +171,4 @@ module webApi '../infra/Dst-web-api/Dst-web-api.bicep' = {
   }
 }
 
-output webApiFqdn string = 'dst-web-api.${aca.properties.defaultDomain}'
+output webApiFqdn string = 'dst-web-api-ca.${aca.properties.defaultDomain}'

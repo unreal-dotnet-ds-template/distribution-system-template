@@ -22,6 +22,13 @@ param replicaLocations array = []
 @description('Identity allowed to push images (the release pipeline).')
 param pusherPrincipalId string = ''
 
+@description('Type of the pusher: ServicePrincipal (pipeline) or User (running the deployment from your machine).')
+@allowed([
+  'ServicePrincipal'
+  'User'
+])
+param pusherPrincipalType string = 'ServicePrincipal'
+
 @description('false = registry only; true = also Front Door.')
 param includeFrontDoor bool = false
 
@@ -52,14 +59,14 @@ resource replicas 'Microsoft.ContainerRegistry/registries/replications@2025-04-0
   location: location
 }]
 
-var acrPushRole = '8311e382-0749-4429-887e-e7e7d3f3c4a4'
+var acrPushRole = '8311e382-0749-4cb8-b61a-304f252e45ec'
 
 resource pusherRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(pusherPrincipalId)) {
   name: guid(registry.id, pusherPrincipalId, acrPushRole)
   scope: registry
   properties: {
     principalId: pusherPrincipalId
-    principalType: 'ServicePrincipal'
+    principalType: pusherPrincipalType
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', acrPushRole)
   }
 }

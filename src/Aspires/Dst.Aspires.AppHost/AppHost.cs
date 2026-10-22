@@ -1,12 +1,26 @@
 #pragma warning disable ASPIREAZURE003 // Aspire Azure networking APIs are still evaluation-only
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning;
+using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.ApplicationInsights;
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Roles;
+using Azure.Provisioning.Network;
+using Azure.Provisioning.OperationalInsights;
+using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var isPublish = builder.ExecutionContext.IsPublishMode;
 
 // orleans storages for clustering (tables) and grain state (blobs); Azurite locally, Azure Storage when published
 var storage = builder.AddAzureStorage("Dst-storage")
+    .ConfigureInfrastructure(infra =>
+    {
+        // Storage names are global, lowercase alphanumeric only (3-24): a hash keeps them unique per cell.
+        var account = infra.GetProvisionableResources().OfType<StorageAccount>().Single();
+        account.Name = BicepFunction.Interpolate($"dst{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}st");
+    })
     .RunAsEmulator();
 var orleansClustering = storage.AddTables("Dst-orleans-clustering");
 var orleansGrainState = storage.AddBlobs("Dst-orleans-grainstate");
@@ -18,13 +32,23 @@ IResourceBuilder<AzureApplicationInsightsResource>? appInsights = null;
 
 if (isPublish)
 {
-    var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("Dst-logs");
+    // Resource names are <app>-<type> (type suffix follows the Azure CAF abbreviations); they only need to be unique
+    // inside the cell's resource group, so they are fixed. deploy/cell_apps.bicep relies on the same names.
+    var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("Dst-logs")
+        .ConfigureInfrastructure(infra =>
+            infra.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single().Name = "dst-log");
     // One VNet per cell: ACA is injected into a delegated subnet, storage is reachable only through private endpoints.
-    var vnet = builder.AddAzureVirtualNetwork("Dst-vnet", "10.0.0.0/16");
+    var vnet = builder.AddAzureVirtualNetwork("Dst-vnet", "10.0.0.0/16")
+        .ConfigureInfrastructure(infra =>
+            infra.GetProvisionableResources().OfType<VirtualNetwork>().Single().Name = "dst-vnet");
     var acaSubnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23");
     var privateEndpointSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/24");
-    privateEndpointSubnet.AddPrivateEndpoint(orleansClustering);
-    privateEndpointSubnet.AddPrivateEndpoint(orleansGrainState);
+    privateEndpointSubnet.AddPrivateEndpoint(orleansClustering)
+        .ConfigureInfrastructure(infra =>
+            ConfigurePrivateEndpoint(infra, "dst-clustering-pep"));
+    privateEndpointSubnet.AddPrivateEndpoint(orleansGrainState)
+        .ConfigureInfrastructure(infra =>
+            ConfigurePrivateEndpoint(infra, "dst-grainstate-pep"));
 
     // Images live in one global registry (created by the global resources); cells only pull from it.
     var registry = builder.AddAzureContainerRegistry("Dst-registry")
@@ -33,8 +57,17 @@ if (isPublish)
     builder.AddAzureContainerAppEnvironment("aca")
         .WithAzureContainerRegistry(registry)
         .WithDelegatedSubnet(acaSubnet)
-        .WithAzureLogAnalyticsWorkspace(logAnalytics);
-    appInsights = builder.AddAzureApplicationInsights("Dst-insights", logAnalytics);
+        .WithAzureLogAnalyticsWorkspace(logAnalytics)
+        .ConfigureInfrastructure(infra =>
+        {
+            var environment = infra.GetProvisionableResources().OfType<ContainerAppManagedEnvironment>().Single();
+            environment.Name = "dst-cae";
+            // Container Apps creates this group itself (platform load balancer + public IP); naming it keeps it recognisable.
+            environment.InfrastructureResourceGroup = BicepFunction.Interpolate($"{BicepFunction.GetResourceGroup().Name}-cae-infra-rg");
+        });
+    appInsights = builder.AddAzureApplicationInsights("Dst-insights", logAnalytics)
+        .ConfigureInfrastructure(infra =>
+            infra.GetProvisionableResources().OfType<ApplicationInsightsComponent>().Single().Name = "dst-appi");
 }
 else
 {
@@ -130,6 +163,19 @@ var webApi = WithTelemetry(builder.AddProject<Projects.Dst_WebApiApp>("Dst-web-a
 // Published Web API only serves requests carrying this Front Door id (empty = not restricted).
 if (isPublish)
 {
+    foreach (var (project, containerApp, identityName, identity) in new[]
+    {
+        (webApi, "dst-web-api-ca", "Dst-web-api-identity", "dst-web-api-id"),
+        (webOrleansSilo, "dst-web-orleans-silo-ca", "Dst-web-orleans-silo-identity", "dst-web-orleans-silo-id"),
+    })
+    {
+        var appIdentity = builder.AddAzureUserAssignedIdentity(identityName)
+            .ConfigureInfrastructure(infra =>
+                infra.GetProvisionableResources().OfType<UserAssignedIdentity>().Single().Name = identity);
+        project.WithAzureUserAssignedIdentity(appIdentity)
+            .PublishAsAzureContainerApp((_, app) => app.Name = containerApp);
+    }
+
     webApi.WithEnvironment("FrontDoor__Id", builder.AddParameter("frontDoorId"));
 
     // Auth/docs settings are Bicep parameters, so the release pipeline decides them per deployment.
@@ -150,6 +196,13 @@ else
             webApi.WithEnvironment(key.Replace(":", "__", StringComparison.Ordinal), value);
         }
     }
+}
+
+static void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra, string name)
+{
+    var endpoint = infra.GetProvisionableResources().OfType<PrivateEndpoint>().Single();
+    endpoint.Name = name;
+    endpoint.CustomNetworkInterfaceName = $"{name}-nic";
 }
 
 builder.Build().Run();

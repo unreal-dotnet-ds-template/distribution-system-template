@@ -109,6 +109,8 @@ jobs:
       # Web API auth/docs: configure as variables of the GitHub environment 'azure' (all optional, default = anonymous API)
       REGISTRY_SKU: ${{ vars.REGISTRY_SKU || 'Basic' }}
       FRONT_DOOR_SKU: ${{ vars.FRONT_DOOR_SKU || 'Standard_AzureFrontDoor' }}
+      GRAFANA_ENABLED: ${{ vars.GRAFANA_ENABLED || 'false' }}
+      GRAFANA_SKU: ${{ vars.GRAFANA_SKU || 'Standard' }}
       PROVISION_AUTH_APP: ${{ vars.PROVISION_AUTH_APP || 'false' }}
       AUTH_MODE: ${{ vars.AUTH_MODE || 'None' }}
       AUTH_AUTHORITY: ${{ vars.AUTH_AUTHORITY }}
@@ -138,7 +140,12 @@ jobs:
         run: |
           CELL_KEYS=$(echo "${{ inputs.cell_keys }}" | tr -d ' ' | jq -R -c 'split(",") | map(select(length > 0))')
           echo "CELL_KEYS=$CELL_KEYS" >> "$GITHUB_ENV"
-          echo "DEPLOYER_PRINCIPAL_ID=$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv)" >> "$GITHUB_ENV"
+          # Object id of the logged-in service principal, read from the ARM token ('oid' claim).
+          # Avoids 'az ad sp show', which needs Microsoft Graph read permission that a deploy identity usually lacks.
+          TOKEN=$(az account get-access-token --query accessToken -o tsv)
+          OID=$(python3 -c 'import base64,json,sys; p=sys.argv[1].split(".")[1]; print(json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))["oid"])' "$TOKEN")
+          echo "::add-mask::$OID"
+          echo "DEPLOYER_PRINCIPAL_ID=$OID" >> "$GITHUB_ENV"
 
       # deploy/main.bicepparam reads DEPLOY_MODE, CELL_KEYS, APP_VERSION and DEPLOYER_PRINCIPAL_ID from the environment.
       # The global registry must exist before images can be pushed, so 'full' is run as provision_only -> push (once) -> deploy_only.
@@ -155,7 +162,7 @@ jobs:
       # The image is registered once in the global registry; cells then enable it (next step).
       - name: Push images to the global registry (once)
         run: |
-          ACR=$(az acr list -g dst-global --query "[0].name" -o tsv)
+          ACR=$(az acr list -g dst-global-rg --query "[0].name" -o tsv)
           if [ -z "$ACR" ]; then
             echo "No global registry found. Run with deploy_mode=full first." >&2
             exit 1

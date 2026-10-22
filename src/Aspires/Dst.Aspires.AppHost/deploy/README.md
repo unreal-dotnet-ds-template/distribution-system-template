@@ -11,6 +11,7 @@ Only this folder is hand-written.
 | `front_door.bicep` | resource group | Front Door profile, WAF and routing (called by `global_resources.bicep`). |
 | `cell_resources.bicep` | subscription | Wraps the Aspire-generated `infra/main.bicep` (resource group, VNet, ACA, storage + private endpoints, Application Insights, identities). |
 | `cell_apps.bicep` | resource group | Web API and Orleans silo container apps of one cell (both apps in one file). |
+| `grafana.bicep`, `grafana_access.bicep`, `grafana_dashboard.bicep` | resource group | Optional Azure Managed Grafana (`GRAFANA_ENABLED=true`): instance, read roles on every cell, and a deployment script that imports `grafana/cell-overview.azure.json`. |
 
 ## Parameters
 
@@ -20,6 +21,9 @@ Only this folder is hand-written.
 | `cellKeys` | `CELL_KEYS` | JSON array of keys from the catalog, e.g. `["cell_1_westus"]` |
 | `appVersion` | `APP_VERSION` | Image tag and `BUILD_NUMBER` |
 | `deployerPrincipalId` | `DEPLOYER_PRINCIPAL_ID` | Object id of the deploying identity |
+| `deployerPrincipalType` | `DEPLOYER_PRINCIPAL_TYPE` | `ServicePrincipal` (default, pipeline) or `User` (local run with `az login`) |
+| `grafanaEnabled` | `GRAFANA_ENABLED` | `true` creates Azure Managed Grafana with the cell dashboard (default `false`, it costs money) |
+| `grafanaSku` | `GRAFANA_SKU` | `Standard` (default) or `Essential` |
 
 ## Modes
 
@@ -55,9 +59,31 @@ Running `full` directly works only when the images for `appVersion` are already 
 
 ## Cells
 
-The catalog in `main.bicep` maps a key to a cell id and an Azure region. A cell is the resource group `dst-<cellId>-<region>` and one Orleans cluster (`dst-<cellId>`); cells never talk to each other.
+The catalog in `main.bicep` maps a key to a cell id and an Azure region. A cell is the resource group `dst-<cellId>-<region>-rg` and one Orleans cluster (`dst-<cellId>`); cells never talk to each other.
 Keys follow `cell_<cellId>_<region>` (the release pipeline derives the resource group from the key), e.g. `cell_1_westus`, `cell_2_eastus`, `cell_3_northeurope`.
 To add a cell, add an entry to `cellCatalog` and pass its key in `cellKeys`.
+
+## Naming convention
+
+`<app>-<type>`: every name ends in a short type suffix (Azure CAF abbreviations), lowercase, hyphen separated. A hyphen is used instead of an underscore because underscores are rejected by most Azure names (storage, registry, Front Door, Container Apps, Grafana, WAF).
+
+| Resource | Name | Azure limits respected |
+|---|---|---|
+| Resource groups | `dst-global-rg`, `dst-<cellId>-<region>-rg` | 1-90 chars |
+| Container registry | `dst<hash>acr` | 5-50, alphanumeric only, global |
+| Storage account | `dst<hash>st` | 3-24, lowercase alphanumeric only, global |
+| Front Door profile / endpoint / origin group / route / security policy | `dst-afd`, `dst-api-ep`, `dst-web-api-og`, `dst-default-route`, `dst-waf-sp` | letters, digits, hyphens |
+| Origins | `cell-<id>-<region>-origin` | no underscores |
+| WAF policy | `dstwaf` | letters and digits only, must start with a letter |
+| Managed Grafana | `dst-<hash8>-amg` | 2-23, global |
+| Container Apps environment | `dst-cae` | max 32, lowercase alphanumeric and hyphens |
+| Container apps | `dst-web-api-ca`, `dst-web-orleans-silo-ca` | max 32, lowercase, no `--` |
+| Managed identities | `dst-web-api-id`, `dst-web-orleans-silo-id`, `dst-grafana-import-id` | |
+| Log Analytics / App Insights / VNet | `dst-log`, `dst-appi`, `dst-vnet` | |
+| Private endpoints / NICs | `dst-clustering-pep`, `dst-grainstate-pep` (`-nic`) | |
+| Container Apps infrastructure group | `<cell resource group>-cae-infra-rg` | created by Azure (platform load balancer + public IP) |
+
+`<hash>` is `uniqueString(...)`, used only where Azure requires a globally unique name. Aspire-generated names are set in `AppHost.cs` (`ConfigureInfrastructure`) and mirrored in `cell_apps.bicep`. Still Aspire-chosen: the ACA environment's registry identity (`aca_mi-<hash>`), the private DNS zones (`privatelink.*`, mandatory names) and their `Dst-vnet-link` children.
 
 ## Network and edge security
 
@@ -79,7 +105,7 @@ Environment `azure` needs the variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `A
 
 Everything below runs from your machine with your own Azure login. It deploys to real Azure and costs money
 The defaults are the cheap SKUs (Front Door Standard, ACR Basic), see "Cost and SKUs" below. Delete the resource groups afterwards.
-Prerequisites: .NET SDK, Docker, Aspire CLI, Azure CLI with Bicep (`az bicep install`). You need Contributor + Role Based
+Prerequisites: .NET SDK, Docker, Aspire CLI, Azure CLI **2.61 or newer** with Bicep (`az upgrade`, then `az bicep upgrade`; check with `az version`). Older CLIs do not understand `.bicepparam` files and fail with `incorrect usage: Chose only one of --template-file FILE | --template-uri URI`. You need Contributor + Role Based
 Access Control Administrator (or Owner) on the subscription.
 
 ### 1. Generate the Bicep (offline)
@@ -100,6 +126,7 @@ $env:CELL_KEYS = '["cell_1_westus"]'
 az bicep build --file deploy\main.bicep --stdout > $null
 az login                              # once
 $env:DEPLOYER_PRINCIPAL_ID = az ad signed-in-user show --query id -o tsv
+$env:DEPLOYER_PRINCIPAL_TYPE = 'User'   # you are a user, not a service principal
 $env:DEPLOY_MODE = 'provision_only'
 az deployment sub what-if --location westeurope --parameters deploy\main.bicepparam
 ```
@@ -118,7 +145,7 @@ cd ..\..\..   # repo root
 dotnet publish src\Dst.WebApiApp\Dst.WebApiApp.csproj -c Release -t:PublishContainer -r linux-x64 --self-contained false -p:ContainerRepository=dst-web-api -p:ContainerImageTags=$env:APP_VERSION
 dotnet publish src\OrleansSilo\Dst.OrleansSilo.WebApp\Dst.OrleansSilo.WebApp.csproj -c Release -t:PublishContainer -r linux-x64 --self-contained false -p:ContainerRepository=dst-web-orleans-silo -p:ContainerImageTags=$env:APP_VERSION
 
-$acr = az acr list -g dst-global --query "[0].name" -o tsv
+$acr = az acr list -g dst-global-rg --query "[0].name" -o tsv
 $server = az acr show -n $acr --query loginServer -o tsv
 az acr login --name $acr
 foreach ($i in 'dst-web-api','dst-web-orleans-silo') {
@@ -128,6 +155,16 @@ foreach ($i in 'dst-web-api','dst-web-orleans-silo') {
 ```
 
 `PublishContainer` loads the image into local Docker. Role assignments can take a minute: retry `az acr login` / `docker push` on 401/403.
+
+If `az acr login` fails on Windows with `error storing credentials ... Not enough memory resources are available`, the Docker credential helper cannot store the token. The ACR token is too large for the Windows credential store. Temporarily use the registry admin user (short password), then disable it again. The apps pull with managed identity, so this is only for the local push:
+
+```powershell
+az acr update --name $acr --admin-enabled true
+$pw = az acr credential show --name $acr --query "passwords[0].value" -o tsv
+docker login "$acr.azurecr.io" --username $acr --password $pw
+# ... docker push ...
+az acr update --name $acr --admin-enabled false
+```
 
 ### 5. Deploy the apps
 
@@ -143,10 +180,10 @@ az deployment sub create --name dst-apps-local --location westeurope --parameter
 ```powershell
 az deployment sub list --query "[?starts_with(name,'dst-')].{n:name,s:properties.provisioningState}" -o table
 az deployment operation sub list --name dst-apps-local --query "[?properties.provisioningState=='Failed'].properties.statusMessage" -o json   # why it failed
-az deployment group list -g dst-1-westus -o table                                                                                          # nested modules
-az containerapp list -g dst-1-westus --query "[].{n:name,latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName}" -o table
-az containerapp logs show -g dst-1-westus -n dst-web-api --follow
-$fd = az afd endpoint list -g dst-global --profile-name dst-frontdoor --query "[0].hostName" -o tsv
+az deployment group list -g dst-1-westus-rg -o table                                                                                          # nested modules
+az containerapp list -g dst-1-westus-rg --query "[].{n:name,latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName}" -o table
+az containerapp logs show -g dst-1-westus-rg -n dst-web-api-ca --follow
+$fd = az afd endpoint list -g dst-global-rg --profile-name dst-afd --query "[0].hostName" -o tsv
 curl "https://$fd/health"
 ```
 
@@ -164,7 +201,7 @@ $env:FRONT_DOOR_SKU = 'Premium_AzureFrontDoor'       # Front Door: managed WAF r
 ```
 
 Switch by re-running with `deploy_mode=full`. Azure may not allow changing the SKU of an existing Front Door profile in
-place; if the deployment rejects it, delete the Front Door profile (resource group `dst-global`) and run `full` again.
+place; if the deployment rejects it, delete the Front Door profile (resource group `dst-global-rg`) and run `full` again.
 Premium registry replicas are created in the cell regions automatically.
 
 | Resource | Default (test) | Production | Notes |
@@ -176,10 +213,26 @@ Premium registry replicas are created in the cell regions automatically.
 | Log Analytics / App Insights | as is | as is | Pay per GB; negligible at test volume. |
 
 Costs accrue hourly, so a short test is a few dollars. Delete the resource groups when done (see cleanup below). Front Door profiles are the thing to not forget.
+
+### Dashboards in Azure (optional Managed Grafana)
+
+Locally the dashboard runs on Prometheus + Grafana containers. In Azure the metrics land in Application Insights / Log Analytics (table `AppMetrics`), so the Azure dashboard is a separate KQL version of it: `grafana/cell-overview.azure.json`.
+
+```powershell
+$env:GRAFANA_ENABLED = 'true'      # before step 3 (provision); GRAFANA_SKU = 'Essential' is the cheaper tier
+```
+
+- Creates one Managed Grafana in `dst-global-rg`, gives it read access (Monitoring Reader, Log Analytics Reader) on every cell resource group, makes the deployer a Grafana admin, and imports the dashboard with a deployment script (dashboards are not ARM resources, they live inside Grafana).
+- The dashboard has a **Cell** selector; each cell is its own Log Analytics workspace. The Grafana URL is the deployment output `grafanaEndpoint`.
+- The script runs on every `full` / `provision_only` deployment, so dashboard edits roll out with the infrastructure. Dashboard changes made in the Grafana UI are overwritten.
+- Differences from the local dashboard: metrics in Application Insights do not carry `app.cell.id` / `app.build.number` (the cell is the workspace; the build shows as the Container Apps revision, so there is no Build selector). Everything else (layout, panel types, gauges, colors, units, descriptions) is generated from the local `observability/grafana/dashboards/cell-overview.json`; only the data source and queries are swapped. "Deactivated" is derived from created activations minus the change in active grains, as locally.
+- To regenerate after changing the local dashboard, run `python deploy/grafana/generate-azure-dashboard.py observability/grafana/dashboards/cell-overview.json deploy/grafana/cell-overview.azure.json` (the KQL queries live in that script) and commit the output.
+- The deployment script uses a temporary storage account and container; if a policy blocks shared-key storage access it will fail.
+- Delete the instance with the `dst-global-rg` resource group.
 ### Redeploy and cleanup
 
 - New app version: repeat steps 4 and 5 with a new `APP_VERSION`. Infra change: repeat step 3 first.
-- Cleanup: `az group delete -n dst-global --yes --no-wait` and `az group delete -n dst-1-westus --yes --no-wait`. Entra apps `dst-api` / `dst-scalar` (if created) must be deleted separately.
+- Cleanup: `az group delete -n dst-global-rg --yes --no-wait` and `az group delete -n dst-1-westus-rg --yes --no-wait` (the Container Apps infrastructure group `dst-1-westus-rg-cae-infra-rg` is removed with the environment). Entra apps `dst-api` / `dst-scalar` (if created) must be deleted separately.
 
 `cell_apps.bicep` mirrors Aspire's deterministic resource naming; re-run the build above after renaming AppHost resources.
 
@@ -188,9 +241,42 @@ Costs accrue hourly, so a short test is a few dollars. Delete the resource group
 **Azure (for the release pipeline)**
 1. Create an Entra app registration (or user-assigned identity) for GitHub and add a **federated credential** for the repo and the GitHub environment `azure` (subject `repo:<org>/<repo>:environment:azure`).
 2. Give it, on the subscription, **Contributor** and **Role Based Access Control Administrator** (the Bicep creates role assignments: AcrPull, storage data roles, App Insights publisher). Alternatively Owner.
-3. Register resource providers once: `Microsoft.App`, `Microsoft.ContainerRegistry`, `Microsoft.Cdn`, `Microsoft.Network`, `Microsoft.Storage`, `Microsoft.OperationalInsights`, `Microsoft.Insights`.
+3. Register resource providers once: `Microsoft.App`, `Microsoft.ContainerRegistry`, `Microsoft.Cdn`, `Microsoft.Network`, `Microsoft.Storage`, `Microsoft.OperationalInsights`, `Microsoft.Insights`, `Microsoft.ManagedIdentity`, `Microsoft.AlertsManagement`, and for Grafana `Microsoft.Dashboard` and `Microsoft.ContainerInstance` (the dashboard import script runs in a container).
 4. In GitHub create environment `azure` (add required reviewers if you want an approval gate) with variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. No secrets are needed (OIDC).
 
+Commands (PowerShell, `az` logged in; `gh` is optional, otherwise use the GitHub web UI for step 4):
+```powershell
+$sub    = az account show --query id -o tsv
+$tenant = az account show --query tenantId -o tsv
+$repo   = '<org>/<repo>'
+
+# 1. identity + federated credential (trusts only environment "azure")
+$appId = az ad app create --display-name dst-github-deployer --query appId -o tsv
+az ad sp create --id $appId
+@{ name='github-azure-env'; issuer='https://token.actions.githubusercontent.com'
+   subject="repo:${repo}:environment:azure"; audiences=@('api://AzureADTokenExchange') } |
+  ConvertTo-Json -Compress | Out-File $env:TEMP\cred.json -Encoding ascii
+az ad app federated-credential create --id $appId --parameters "@$env:TEMP\cred.json"
+
+# 2. roles
+az role assignment create --assignee $appId --role Contributor --scope "/subscriptions/$sub"
+az role assignment create --assignee $appId --role "Role Based Access Control Administrator" --scope "/subscriptions/$sub"
+
+# 3. providers
+'Microsoft.App','Microsoft.ContainerRegistry','Microsoft.Cdn','Microsoft.Network','Microsoft.Storage',
+'Microsoft.OperationalInsights','Microsoft.Insights','Microsoft.ManagedIdentity','Microsoft.AlertsManagement',
+'Microsoft.Dashboard','Microsoft.ContainerInstance' | ForEach-Object { az provider register --namespace $_ }
+
+# 4. GitHub environment + variables (needs the gh CLI and `gh auth login`)
+gh api -X PUT repos/$repo/environments/azure
+gh variable set AZURE_CLIENT_ID -e azure -R $repo -b $appId
+gh variable set AZURE_TENANT_ID -e azure -R $repo -b $tenant
+gh variable set AZURE_SUBSCRIPTION_ID -e azure -R $repo -b $sub
+```
+
+Also under repo Settings → Actions → General → Workflow permissions allow read and write (the build pipeline pushes `v*` tags), and make sure no tag protection rule blocks `v*`.
+
+Run order: merge to `main` (Official Build Pipeline), then run Official Release Pipeline with `deploy_mode=full` and `cell_keys=cell_1_westus`; later versions use `deploy_only`. If a role assignment fails with "Authorization failed", step 2 is missing; if login fails, the federated credential subject does not match the repo/environment name.
 **Web API authentication (optional, default is anonymous)**
 
 *Automatic (recommended):* set the GitHub environment variable `PROVISION_AUTH_APP=true`. `auth_app.bicep` then creates the API app (scope `access_as_user`) and the Scalar SPA app (redirect URI = Front Door host) in Entra ID via the Microsoft Graph Bicep extension (`bicepconfig.json`), and feeds authority/audience/client id/scope to the Web API. Everything is global and shared by all cells. One-time requirement: the deploying identity needs the Microsoft Graph application permission `Application.ReadWrite.OwnedBy` with admin consent. None of these values are secrets (JWT validation and SPA + PKCE need no client secret), so no Key Vault is used; add one when a real secret appears.
