@@ -109,7 +109,7 @@ jobs:
       # Web API auth/docs: configure as variables of the GitHub environment 'azure' (all optional, default = anonymous API)
       REGISTRY_SKU: ${{ vars.REGISTRY_SKU || 'Basic' }}
       FRONT_DOOR_SKU: ${{ vars.FRONT_DOOR_SKU || 'Standard_AzureFrontDoor' }}
-      GRAFANA_ENABLED: ${{ vars.GRAFANA_ENABLED || 'false' }}
+      GRAFANA_ENABLED: ${{ vars.GRAFANA_ENABLED || 'true' }}
       GRAFANA_SKU: ${{ vars.GRAFANA_SKU || 'Standard' }}
       PROVISION_AUTH_APP: ${{ vars.PROVISION_AUTH_APP || 'false' }}
       AUTH_MODE: ${{ vars.AUTH_MODE || 'None' }}

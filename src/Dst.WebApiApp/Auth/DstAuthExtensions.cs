@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using Dst.WebApiApp.TrafficGeneration;
 
 namespace Dst.WebApiApp.Auth;
 
@@ -70,6 +71,14 @@ internal static class DstAuthExtensions
 
         builder.Services.AddOpenApi(openApi =>
         {
+            // The generated server URL is the container app host, which rejects calls that bypass Front Door.
+            // Without servers, Scalar targets the origin the docs were loaded from (Front Door or localhost).
+            openApi.AddDocumentTransformer((document, _, _) =>
+            {
+                document.Servers?.Clear();
+                return Task.CompletedTask;
+            });
+
             if (options.Mode != DstAuthMode.JwtBearer)
             {
                 return;
@@ -181,4 +190,10 @@ internal static class DstAuthExtensions
     public static TBuilder RequireDstAuthorization<TBuilder>(this TBuilder builder, DstAuthOptions options)
         where TBuilder : IEndpointConventionBuilder
         => options.Mode == DstAuthMode.None ? builder : builder.RequireAuthorization();
+
+    public static TBuilder WithWeatherTrafficAuthorization<TBuilder>(this TBuilder builder, DstAuthOptions options)
+        where TBuilder : IEndpointConventionBuilder
+        => options.Mode == DstAuthMode.None ? builder : builder.RequireAuthorization(policy =>
+            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, SelfTrafficCredential.Scheme)
+                .RequireAuthenticatedUser());
 }

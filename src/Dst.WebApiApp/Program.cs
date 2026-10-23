@@ -1,8 +1,10 @@
 using Dst.Core.Features.WeatherForecasts;
 using Dst.WebApiApp.Auth;
+using Dst.WebApiApp.RateLimiting;
+using Dst.WebApiApp.TrafficGeneration;
+using Dst.WebApiApp.WeatherForecasts;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,23 +12,14 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.AddFrontDoorForwardedHeaders();
 var authOptions = builder.AddDstAuthentication();
-builder.Services.AddRateLimiter(limiter =>
-{
-    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    limiter.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = builder.Configuration.GetValue("RateLimit:PermitsPerMinute", 600),
-                Window = TimeSpan.FromMinutes(1),
-            }));
-});
+builder.AddTrafficGeneration();
+builder.AddDstRateLimiter();
 builder.AddKeyedAzureTableServiceClient("Dst-orleans-clustering");
 builder.UseOrleansClient();
 
 var app = builder.Build();
 
+app.UseSelfTrafficValidation();
 app.UseFrontDoorOnly();
 app.UseRateLimiter();
 app.UseDstAuthentication(authOptions);
@@ -96,7 +89,7 @@ var commandsGroup = app.MapGroup("/api/commands/weather")
     .WithTags("Weather Forecasts Commands")
     .RequireDstAuthorization(authOptions);
 
-commandsGroup.MapPost("update", async ([FromServices] IClusterClient clusterClient, [FromBody] (DateOnly Date, string Location) data) =>
+commandsGroup.MapPost("update", async ([FromServices] IClusterClient clusterClient, [FromBody] UpdateWeatherRequest data) =>
 {
     var grain = clusterClient.GetGrain<ICityWeatherGrain>(data.Date.DayOfYear, data.Location);
     var result = await grain.UpdateAsync().ConfigureAwait(true);
@@ -104,7 +97,9 @@ commandsGroup.MapPost("update", async ([FromServices] IClusterClient clusterClie
     return result.IsSuccess
         ? Results.Ok(result.Value)
         : Results.Problem(result.ErrorMessage);
-});
+}).WithWeatherTrafficAuthorization(authOptions);
+
+app.MapTrafficGeneration(authOptions);
 
 app.MapDefaultEndpoints();
 

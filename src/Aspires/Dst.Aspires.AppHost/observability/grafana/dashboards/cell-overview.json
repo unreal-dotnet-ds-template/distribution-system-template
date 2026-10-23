@@ -10,7 +10,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "The 10 application grain types with the most active instances (in memory) right now.",
+      "description": "The 10 application grain types with the most active instances (in memory) right now, summed across replicas within the selected build. Labels show only the grain type.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -97,13 +97,14 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "How active application grains are spread across silos right now. A lopsided pie means uneven load.",
+      "description": "Distribution of currently active application grains across silo instances. Each slice represents one silo; values are grain counts. The legend includes idle silos with 0; if all counts are zero, there are no slices. System grains are excluded.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "decimals": 0,
+          "min": 0,
           "unit": "short"
         },
         "overrides": []
@@ -122,7 +123,12 @@
           "value"
         ],
         "legend": {
-          "showLegend": false
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "values": [
+            "value"
+          ]
         },
         "reduceOptions": {
           "calcs": [
@@ -139,7 +145,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (service_instance_id) (orleans_catalog_activations{app_cell_id=\"$cell\", app_build_number=\"$build\", grain_type!~\"sys\\\\..*|dashboard|management\"})",
+          "expr": "sum by (service_instance_id) (orleans_catalog_activations{app_cell_id=\"$cell\", app_build_number=\"$build\", grain_type!~\"sys\\\\..*|dashboard|management\"}) or 0 * count by (service_instance_id) (orleans_catalog_activations{app_cell_id=\"$cell\", app_build_number=\"$build\"})",
           "instant": true,
           "legendFormat": "{{service_instance_id}}",
           "refId": "A"
@@ -636,7 +642,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Share of instances (Web API and silo together) running each build. A deployment shows up as one build replacing another. Ignores the build filter.",
+      "description": "Share of reporting Web API and silo instances running each build over time, stacked to 100%. Legend labels are build numbers only. Ignores the build filter.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -667,11 +673,10 @@
       "id": 6,
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": [],
           "displayMode": "list",
-          "placement": "bottom"
+          "placement": "bottom",
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -681,8 +686,8 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "count by (app_build_number) (count by (app_build_number, service_name, service_instance_id) (dotnet_process_cpu_time_seconds_total{app_cell_id=\"$cell\"}))",
-          "legendFormat": "build {{app_build_number}}",
+          "expr": "sum by (app_build_number) (dst_build_info{app_cell_id=\"$cell\"})",
+          "legendFormat": "{{app_build_number}}",
           "refId": "A"
         }
       ],

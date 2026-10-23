@@ -7,6 +7,9 @@ targetScope = 'subscription'
 param resourceGroupName string
 param location string
 param principalId string
+@minLength(1)
+@maxLength(9)
+param cellId string
 
 @description('Global registry the cell pulls images from.')
 param registryName string
@@ -18,10 +21,11 @@ module cell '../infra/main.bicep' = {
     resourceGroupName: resourceGroupName
     location: location
     principalId: principalId
+    cellId: cellId
     registryName: registryName
     registryResourceGroup: registryResourceGroup
   }
 }
 
 // Public host name of the Web API, used as the Front Door origin.
-output webApiHostName string = 'dst-web-api-ca.${cell.outputs.aca_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}'
+output webApiHostName string = 'dst-${cellId}-web-api-ca.${cell.outputs.aca_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}'

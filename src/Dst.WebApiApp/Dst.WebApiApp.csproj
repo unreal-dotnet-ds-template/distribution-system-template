@@ -7,8 +7,12 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.FeatureManagement.AspNetCore" />
     <PackageReference Include="Microsoft.Orleans.Client" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AzureStorage" />
     <PackageReference Include="Aspire.Azure.Data.Tables" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dst.WebApiApp.Tests" />
   </ItemGroup>
 </Project>
