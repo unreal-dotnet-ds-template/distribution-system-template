@@ -1,8 +1,8 @@
-namespace Dst.OrleansSilo.WebApp.BackgroundServices;
+namespace Dst.Core.Features.WeatherForecasts;
 
-internal static class WeatherHelper
+public static class WeatherHelper
 {
-    public static readonly string[] Locations = new[] {
+    public static IReadOnlyList<string> Locations { get; } = new[] {
         "London",
         "Prague",
         "Paris",
@@ -103,7 +103,7 @@ internal static class WeatherHelper
         "Derry"
     };
 
-    public static readonly DateOnly[] Days = Enumerable.Range(1, 365)
+    public static IReadOnlyList<DateOnly> Days { get; } = Enumerable.Range(1, 365)
         .Select(day => new DateOnly(DateTime.UtcNow.Year, 1, 1).AddDays(day - 1))
         .ToArray();
 

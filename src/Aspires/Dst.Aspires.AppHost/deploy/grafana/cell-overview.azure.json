@@ -10,7 +10,7 @@
         "type": "grafana-azure-monitor-datasource",
         "uid": "__DS_UID__"
       },
-      "description": "The 10 application grain types with the most active instances (in memory) right now.",
+      "description": "The 10 application grain types with the most active instances (in memory) right now, summed across replicas and builds. Labels show only the grain type.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -67,7 +67,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by ['Grain type'] = g | top 10 by Active desc"
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where TimeGenerated > ago(5m) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where isnotempty(g) and g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize arg_max(TimeGenerated, Sum) by AppRoleName, AppRoleInstance, AppVersion, g | summarize Active = sum(Sum) by ['Grain type'] = g | top 10 by Active desc"
           }
         }
       ],
@@ -93,13 +93,14 @@
         "type": "grafana-azure-monitor-datasource",
         "uid": "__DS_UID__"
       },
-      "description": "How active application grains are spread across silos right now. A lopsided pie means uneven load.",
+      "description": "Distribution of currently active application grains across silo replicas (latest samples within 5 minutes). Each slice represents one silo; values are grain counts. The legend includes idle silos with 0; if all counts are zero, there are no slices. System grains are excluded.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "decimals": 0,
+          "min": 0,
           "unit": "short"
         },
         "overrides": []
@@ -118,14 +119,19 @@
           "value"
         ],
         "legend": {
-          "showLegend": false
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "values": [
+            "value"
+          ]
         },
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^Active$/",
-          "values": true
+          "fields": "",
+          "values": false
         },
         "tooltip": {
           "mode": "single",
@@ -145,7 +151,24 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by Instance = AppRoleInstance"
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'; let silos = m | summarize by AppRoleInstance; let builds = m | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize arg_max(TimeGenerated, Build) by AppRoleInstance | project AppRoleInstance, Build; let grains = m | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where isnotempty(g) and g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by AppRoleInstance; silos | join kind=leftouter grains on AppRoleInstance | join kind=leftouter builds on AppRoleInstance | project Instance = strcat(AppRoleInstance, ' @ ', iff(isempty(Build), 'unknown', Build)), Active = coalesce(Active, 0.0) | order by Instance asc"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "Instance",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "Active",
+                "handlerKey": "field.value"
+              }
+            ]
           }
         }
       ],
@@ -316,7 +339,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '/dst-web-api' | summarize Instances = dcount(AppRoleInstance)"
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '-web-api-ca' or AppRoleName endswith '/dst-web-api' | summarize Instances = dcount(AppRoleInstance)"
           }
         }
       ],
@@ -384,7 +407,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '/dst-web-orleans-silo' | summarize Instances = dcount(AppRoleInstance)"
+            "query": "AppMetrics | where TimeGenerated > ago(5m) | where AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo' | summarize Instances = dcount(AppRoleInstance)"
           }
         }
       ],
@@ -564,7 +587,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize v = sum(Sum)"
+            "query": "let builds = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize by AppRoleName, AppRoleInstance, AppVersion, Build; let buildMetrics = AppMetrics | where $__timeFilter(TimeGenerated) | lookup kind=leftouter builds on AppRoleName, AppRoleInstance, AppVersion | extend Build = iff(isempty(Build), 'unknown (before build-info)', Build); buildMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize v = sum(Sum)"
           }
         }
       ],
@@ -710,7 +733,7 @@
         "type": "grafana-azure-monitor-datasource",
         "uid": "__DS_UID__"
       },
-      "description": "Share of instances (Web API and silo together) running each build. A deployment shows up as one build replacing another. Ignores the build filter.",
+      "description": "Share of reporting Web API and silo instances running each build over time, stacked to 100%. Legend labels are build numbers only. Ignores the build filter.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -728,7 +751,8 @@
           },
           "decimals": 0,
           "min": 0,
-          "unit": "short"
+          "unit": "short",
+          "displayName": "${__field.labels.Build}"
         },
         "overrides": []
       },
@@ -741,11 +765,10 @@
       "id": 6,
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": [],
           "displayMode": "list",
-          "placement": "bottom"
+          "placement": "bottom",
+          "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
@@ -765,7 +788,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | summarize Instances = dcount(AppRoleInstance) by bin(TimeGenerated, 1m), ['Build (revision)'] = AppVersion | order by TimeGenerated asc"
+            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize by bin(TimeGenerated, 1m), AppRoleName, AppRoleInstance, AppVersion, Build | summarize Instances = count() by TimeGenerated, Build | order by TimeGenerated asc"
           }
         }
       ],
@@ -935,7 +958,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '/dst-web-api'; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dotnet.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dotnet.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; cpu | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = max_of(Q, 0.0) | order by Instance asc"
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-api-ca' or AppRoleName endswith '/dst-web-api'; let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
           }
         }
       ],
@@ -958,7 +981,7 @@
           "id": "organize"
         }
       ],
-      "description": "One row per Dst-web-api process: CPU is the share of the cores available to that process, memory is the OS working set, GC heap is the managed heap after the last collection. Threads and queued work are .NET thread pool; queued work staying above 0 means the process is saturated.",
+      "description": "One row per Web API replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
       "title": "Web APIs",
       "type": "table"
     },
@@ -1110,7 +1133,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '/dst-web-orleans-silo'; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dotnet.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dotnet.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; cpu | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = max_of(Q, 0.0) | order by Instance asc"
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'; let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
           }
         }
       ],
@@ -1133,7 +1156,7 @@
           "id": "organize"
         }
       ],
-      "description": "One row per Dst-web-orleans-silo process: CPU is the share of the cores available to that process, memory is the OS working set, GC heap is the managed heap after the last collection. Threads and queued work are .NET thread pool; queued work staying above 0 means the process is saturated.",
+      "description": "One row per silo replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
       "title": "Silos",
       "type": "table"
     },
@@ -1292,7 +1315,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "let active = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, g | summarize Active = sum(v) by TimeGenerated | where TimeGenerated < bin(now(), 1m) - 2m | order by TimeGenerated asc | extend delta = Active - prev(Active); let created = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activation-created' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize Created = sum(Sum) by bin(TimeGenerated, 1m); let latency = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-app-requests-latency' | summarize ['Avg grain call latency'] = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m); active | join kind=leftouter created on TimeGenerated | join kind=leftouter latency on TimeGenerated | project TimeGenerated, Active, Deactivated = max_of(coalesce(Created, 0.0) - coalesce(delta, 0.0), 0.0), ['Avg grain call latency'] | order by TimeGenerated asc"
+            "query": "let builds = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize by AppRoleName, AppRoleInstance, AppVersion, Build; let buildMetrics = AppMetrics | where $__timeFilter(TimeGenerated) | lookup kind=leftouter builds on AppRoleName, AppRoleInstance, AppVersion | extend Build = iff(isempty(Build), 'unknown (before build-info)', Build); let active = buildMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, g, Build | summarize Active = sum(v) by TimeGenerated, Build | where TimeGenerated < bin(now(), 1m) - 2m | order by Build asc, TimeGenerated asc | serialize | extend delta = iff(Build == prev(Build), Active - prev(Active), 0.0); let created = buildMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activation-created' | extend g = tostring(Properties['grain_type']) | where g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize Created = sum(Sum) by bin(TimeGenerated, 1m), Build; let latency = buildMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-app-requests-latency' | summarize ['Avg grain call latency'] = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m), Build; active | join kind=leftouter created on TimeGenerated, Build | join kind=leftouter latency on TimeGenerated, Build | project TimeGenerated, Build, Active, Deactivated = max_of(coalesce(Created, 0.0) - coalesce(delta, 0.0), 0.0), ['Avg grain call latency'] | order by TimeGenerated asc"
           }
         }
       ],
@@ -1361,7 +1384,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where not(g !startswith 'sys.' and g !in ('dashboard', 'management')) | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, ['Grain type'] = g | summarize Activations = sum(v) by TimeGenerated, ['Grain type'] | order by TimeGenerated asc"
+            "query": "let builds = AppMetrics | where $__timeFilter(TimeGenerated) | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize by AppRoleName, AppRoleInstance, AppVersion, Build; let buildMetrics = AppMetrics | where $__timeFilter(TimeGenerated) | lookup kind=leftouter builds on AppRoleName, AppRoleInstance, AppVersion | extend Build = iff(isempty(Build), 'unknown (before build-info)', Build); buildMetrics | where $__timeFilter(TimeGenerated) | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where not(g !startswith 'sys.' and g !in ('dashboard', 'management')) | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, ['Grain type'] = strcat(g, ' @ ', Build) | summarize Activations = sum(v) by TimeGenerated, ['Grain type'] | order by TimeGenerated asc"
           }
         }
       ],

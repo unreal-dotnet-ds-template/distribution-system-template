@@ -5,6 +5,8 @@
 targetScope = 'resourceGroup'
 
 @description('Cell id, e.g. "1". The resource group is dst-<cellId>-<region>-rg.')
+@minLength(1)
+@maxLength(9)
 param cellId string
 
 @description('App version: reported as BUILD_NUMBER and used as the image tag in the cell registry.')
@@ -50,7 +52,7 @@ var webApiImage = '${acr.properties.loginServer}/dst-web-api:${appVersion}'
 var siloImage = '${acr.properties.loginServer}/dst-web-orleans-silo:${appVersion}'
 
 resource aca 'Microsoft.App/managedEnvironments@2025-07-01' existing = {
-  name: 'dst-cae'
+  name: 'dst-${cellId}-cae'
 }
 
 resource acr 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
@@ -68,20 +70,20 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
 }
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
-  name: 'dst-log'
+  name: 'dst-${cellId}-log'
 }
 
 resource apiIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: 'dst-web-api-id'
+  name: 'dst-${cellId}-web-api-id'
 }
 
 resource siloIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: 'dst-web-orleans-silo-id'
+  name: 'dst-${cellId}-web-orleans-silo-id'
 }
 
 // Same definition as the Aspire-generated module, plus Entra-only ingestion (no instrumentation keys).
 resource insights 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'dst-appi'
+  name: 'dst-${cellId}-appi'
   kind: 'web'
   location: resourceGroup().location
   properties: {
@@ -136,6 +138,7 @@ module silo '../infra/Dst-web-orleans-silo/Dst-web-orleans-silo.bicep' = {
     dst_orleanscluster_cluster_id_value: orleansClusterId
     dst_orleanscluster_service_id_value: orleansServiceId
     cellid_value: cellId
+    cellId: cellId
     buildnumber_value: appVersion
   }
 }
@@ -167,8 +170,9 @@ module webApi '../infra/Dst-web-api/Dst-web-api.bicep' = {
     dst_orleanscluster_cluster_id_value: orleansClusterId
     dst_orleanscluster_service_id_value: orleansServiceId
     cellid_value: cellId
+    cellId: cellId
     buildnumber_value: appVersion
   }
 }
 
-output webApiFqdn string = 'dst-web-api-ca.${aca.properties.defaultDomain}'
+output webApiFqdn string = 'dst-${cellId}-web-api-ca.${aca.properties.defaultDomain}'

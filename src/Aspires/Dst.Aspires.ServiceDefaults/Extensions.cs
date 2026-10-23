@@ -51,6 +51,8 @@ public static class ServiceDefaultsExtensions
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         var buildInfo = BuildInfo.From(builder.Configuration);
+        builder.Services.AddHostedService(_ => new BuildInfoMetrics(buildInfo));
+        builder.Services.AddHostedService(_ => new ServiceResourceMetrics());
 
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -74,6 +76,8 @@ public static class ServiceDefaultsExtensions
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
+                    .AddMeter(BuildInfoMetrics.MeterName)
+                    .AddMeter(ServiceResourceMetrics.MeterName)
                     .AddMeter("System.Runtime")
                     .AddMeter("Microsoft.Orleans"); // Orleans metrics
             })

@@ -11,7 +11,7 @@ Only this folder is hand-written.
 | `front_door.bicep` | resource group | Front Door profile, WAF and routing (called by `global_resources.bicep`). |
 | `cell_resources.bicep` | subscription | Wraps the Aspire-generated `infra/main.bicep` (resource group, VNet, ACA, storage + private endpoints, Application Insights, identities). |
 | `cell_apps.bicep` | resource group | Web API and Orleans silo container apps of one cell (both apps in one file). |
-| `grafana.bicep`, `grafana_access.bicep`, `grafana_dashboard.bicep` | resource group | Optional Azure Managed Grafana (`GRAFANA_ENABLED=true`): instance, read roles on every cell, and a deployment script that imports `grafana/cell-overview.azure.json`. |
+| `grafana.bicep`, `grafana_access.bicep`, `grafana_dashboard.bicep` | resource group | Azure Managed Grafana (enabled by default): instance, read roles on every cell, and a deployment script that imports `grafana/cell-overview.azure.json`. |
 
 ## Parameters
 
@@ -22,7 +22,7 @@ Only this folder is hand-written.
 | `appVersion` | `APP_VERSION` | Image tag and `BUILD_NUMBER` |
 | `deployerPrincipalId` | `DEPLOYER_PRINCIPAL_ID` | Object id of the deploying identity |
 | `deployerPrincipalType` | `DEPLOYER_PRINCIPAL_TYPE` | `ServicePrincipal` (default, pipeline) or `User` (local run with `az login`) |
-| `grafanaEnabled` | `GRAFANA_ENABLED` | `true` creates Azure Managed Grafana with the cell dashboard (default `false`, it costs money) |
+| `grafanaEnabled` | `GRAFANA_ENABLED` | Creates Azure Managed Grafana with the cell dashboard (default `true`, incurs Azure charges; set `false` to opt out) |
 | `grafanaSku` | `GRAFANA_SKU` | `Standard` (default) or `Essential` |
 
 ## Modes
@@ -65,7 +65,7 @@ To add a cell, add an entry to `cellCatalog` and pass its key in `cellKeys`.
 
 ## Naming convention
 
-`<app>-<type>`: every name ends in a short type suffix (Azure CAF abbreviations), lowercase, hyphen separated. A hyphen is used instead of an underscore because underscores are rejected by most Azure names (storage, registry, Front Door, Container Apps, Grafana, WAF).
+Cell resources use `<app>-<cellId>-<type>` (or `<app>-<cellId>-<service>-<type>`); global resources omit the cell id. Every name ends in a short type suffix (Azure CAF abbreviations), lowercase, hyphen separated. Cell ids must be unique in the catalog and use 1-9 lowercase alphanumeric characters, so even the silo container app fits Azure's 32-character limit. A hyphen is used instead of an underscore because underscores are rejected by most Azure names (storage, registry, Front Door, Container Apps, Grafana, WAF).
 
 | Resource | Name | Azure limits respected |
 |---|---|---|
@@ -76,14 +76,16 @@ To add a cell, add an entry to `cellCatalog` and pass its key in `cellKeys`.
 | Origins | `cell-<id>-<region>-origin` | no underscores |
 | WAF policy | `dstwaf` | letters and digits only, must start with a letter |
 | Managed Grafana | `dst-<hash8>-amg` | 2-23, global |
-| Container Apps environment | `dst-cae` | max 32, lowercase alphanumeric and hyphens |
-| Container apps | `dst-web-api-ca`, `dst-web-orleans-silo-ca` | max 32, lowercase, no `--` |
-| Managed identities | `dst-web-api-id`, `dst-web-orleans-silo-id`, `dst-grafana-import-id` | |
-| Log Analytics / App Insights / VNet | `dst-log`, `dst-appi`, `dst-vnet` | |
-| Private endpoints / NICs | `dst-clustering-pep`, `dst-grainstate-pep` (`-nic`) | |
+| Container Apps environment | `dst-<cellId>-cae` | max 32, lowercase alphanumeric and hyphens |
+| Container apps | `dst-<cellId>-web-api-ca`, `dst-<cellId>-web-orleans-silo-ca` | max 32, lowercase, no `--` |
+| Managed identities | `dst-<cellId>-web-api-id`, `dst-<cellId>-web-orleans-silo-id`, `dst-grafana-import-id` (global) | |
+| Log Analytics / App Insights / VNet | `dst-<cellId>-log`, `dst-<cellId>-appi`, `dst-<cellId>-vnet` | |
+| Private endpoints / NICs | `dst-<cellId>-clustering-pep`, `dst-<cellId>-grainstate-pep` (`-nic`) | |
 | Container Apps infrastructure group | `<cell resource group>-cae-infra-rg` | created by Azure (platform load balancer + public IP) |
 
 `<hash>` is `uniqueString(...)`, used only where Azure requires a globally unique name. Aspire-generated names are set in `AppHost.cs` (`ConfigureInfrastructure`) and mirrored in `cell_apps.bicep`. Still Aspire-chosen: the ACA environment's registry identity (`aca_mi-<hash>`), the private DNS zones (`privatelink.*`, mandatory names) and their `Dst-vnet-link` children.
+
+The generated bundle remains cell-agnostic: `cell_resources.bicep` and `cell_apps.bicep` pass the same cell id into the generated modules. **Migration:** cell-prefixed names create new Azure resources; they do not rename an existing deployment. For an already deployed cell, plan an infrastructure recreation/migration, preserve any needed storage data, and remove superseded resources only after the new cell is healthy. Incremental deployments do not delete the old resources.
 
 ## Network and edge security
 
@@ -93,6 +95,8 @@ Generated by Aspire (published mode only):
 - apps reach storage and Application Insights with their managed identities only (no keys).
 
 Public traffic: Internet -> Front Door (WAF) -> Web API (ACA external ingress). The Web API receives the Front Door id (`FrontDoor__Id`, looked up in `cell_apps.bicep`) and returns 403 to any request without the matching `X-Azure-FDID` header. The silo has internal ingress only.
+
+Synthetic weather traffic calls the same Web API replica over loopback, with a per-process credential restricted to `POST /api/commands/weather/update`. Only these validated self-calls can skip the Front Door check and satisfy weather-update authentication without an Entra token. Public authentication and feature-management authorization are unchanged. See [traffic generation](../../../../docs/observability.md#synthetic-http-traffic).
 
 ## Pipelines
 
@@ -156,7 +160,32 @@ foreach ($i in 'dst-web-api','dst-web-orleans-silo') {
 
 `PublishContainer` loads the image into local Docker. Role assignments can take a minute: retry `az acr login` / `docker push` on 401/403.
 
-If `az acr login` fails on Windows with `error storing credentials ... Not enough memory resources are available`, the Docker credential helper cannot store the token. The ACR token is too large for the Windows credential store. Temporarily use the registry admin user (short password), then disable it again. The apps pull with managed identity, so this is only for the local push:
+If `az acr login` fails on Windows with `error storing credentials ... Not enough memory resources are available` (sometimes reported as the password being too long), the Windows credential store (Docker Desktop's `desktop`/`wincred` helper) cannot hold the large Entra token. Use one of these workarounds; the apps pull with managed identity, so either is only for the local push.
+
+**Option A (recommended, no admin user):** in the same PowerShell window, point Docker at a temporary config and hide the credential helpers from `PATH` for this window only, so the token is kept in a temporary file instead. Docker otherwise falls back to `wincred` even with an empty config. This replaces `az acr login` and the push loop above (`az acr login` itself runs `docker` from `PATH`, so the token is passed to `docker login` directly):
+
+```powershell
+$docker = (Get-Command docker).Source
+$env:DOCKER_CONFIG = Join-Path $env:TEMP "dst-docker-$(New-Guid)"
+New-Item -ItemType Directory $env:DOCKER_CONFIG | Out-Null
+Set-Content (Join-Path $env:DOCKER_CONFIG 'config.json') '{}' -Encoding ascii
+$helperDirs = Get-Command docker-credential-* -ErrorAction SilentlyContinue | ForEach-Object { Split-Path $_.Source } | Sort-Object -Unique
+$env:PATH = ($env:PATH -split ';' | Where-Object { $_ -and ($helperDirs -notcontains $_.TrimEnd('\')) }) -join ';'
+
+az acr login --name $acr --expose-token --query accessToken -o tsv |
+  & $docker login $server --username 00000000-0000-0000-0000-000000000000 --password-stdin
+foreach ($i in 'dst-web-api','dst-web-orleans-silo') {
+  & $docker tag "${i}:$env:APP_VERSION" "$server/${i}:$env:APP_VERSION"
+  & $docker push "$server/${i}:$env:APP_VERSION"
+}
+
+Remove-Item -Recurse -Force $env:DOCKER_CONFIG   # deletes the stored token
+Remove-Item Env:DOCKER_CONFIG
+```
+
+Docker warns that credentials are stored unencrypted. The file holds a short-lived ACR token and is deleted at the end. `PATH` changes only affect this window; open a new window afterwards if you need the helpers again.
+
+**Option B:** temporarily enable the registry admin user (short password), then disable it again:
 
 ```powershell
 az acr update --name $acr --admin-enabled true
@@ -182,7 +211,7 @@ az deployment sub list --query "[?starts_with(name,'dst-')].{n:name,s:properties
 az deployment operation sub list --name dst-apps-local --query "[?properties.provisioningState=='Failed'].properties.statusMessage" -o json   # why it failed
 az deployment group list -g dst-1-westus-rg -o table                                                                                          # nested modules
 az containerapp list -g dst-1-westus-rg --query "[].{n:name,latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName}" -o table
-az containerapp logs show -g dst-1-westus-rg -n dst-web-api-ca --follow
+az containerapp logs show -g dst-1-westus-rg -n dst-1-web-api-ca --follow
 $fd = az afd endpoint list -g dst-global-rg --profile-name dst-afd --query "[0].hostName" -o tsv
 curl "https://$fd/health"
 ```
@@ -191,7 +220,7 @@ Front Door can take a few minutes to start routing; its first health probe fails
 
 ### Cost and SKUs (defaults are cheap; switch to Premium for production)
 
-By default a deployment uses the cheap SKUs, which is right for R&D and tests (roughly $10-15 for a week).
+By default a deployment uses Basic ACR, Standard Front Door and Standard Managed Grafana. Managed Grafana is enabled by default and adds recurring charges; opt out with `GRAFANA_ENABLED=false` before provisioning if it is not needed.
 For production switch to Premium by setting these before step 3 (locally as environment variables, in the pipeline as
 variables of the GitHub environment `azure`):
 
@@ -211,15 +240,17 @@ Premium registry replicas are created in the cell regions automatically.
 | Private endpoints (storage tables + blobs) | as is | as is | ~ $15/month together, charged per hour. |
 | Container Apps | as is | as is | Consumption plan; 1 replica each. Pay per use, small for a test. |
 | Log Analytics / App Insights | as is | as is | Pay per GB; negligible at test volume. |
+| Managed Grafana | Standard, enabled | Standard | Recurring charges; opt out with `GRAFANA_ENABLED=false`, or use Essential where available. |
 
 Costs accrue hourly, so a short test is a few dollars. Delete the resource groups when done (see cleanup below). Front Door profiles are the thing to not forget.
 
-### Dashboards in Azure (optional Managed Grafana)
+### Dashboards in Azure (Managed Grafana enabled by default)
 
 Locally the dashboard runs on Prometheus + Grafana containers. In Azure the metrics land in Application Insights / Log Analytics (table `AppMetrics`), so the Azure dashboard is a separate KQL version of it: `grafana/cell-overview.azure.json`.
 
 ```powershell
-$env:GRAFANA_ENABLED = 'true'      # before step 3 (provision); GRAFANA_SKU = 'Essential' is the cheaper tier
+$env:GRAFANA_ENABLED = 'false'    # optional opt-out before step 3 (provision)
+# Keep the default true to provision Grafana; GRAFANA_SKU = 'Essential' is the cheaper tier.
 ```
 
 - Creates one Managed Grafana in `dst-global-rg`, gives it read access (Monitoring Reader, Log Analytics Reader) on every cell resource group, makes the deployer a Grafana admin, and imports the dashboard with a deployment script (dashboards are not ARM resources, they live inside Grafana).

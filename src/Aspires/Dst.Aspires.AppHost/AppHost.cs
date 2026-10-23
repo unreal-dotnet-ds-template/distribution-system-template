@@ -12,6 +12,10 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var isPublish = builder.ExecutionContext.IsPublishMode;
+IResourceBuilder<ParameterResource>? cellIdParameter = isPublish ? builder.AddParameter("cellId") : null;
+
+BicepValue<string> CellResourceName(AzureResourceInfrastructure infra, string suffix)
+    => BicepFunction.Interpolate($"dst-{cellIdParameter!.AsProvisioningParameter(infra)}-{suffix}");
 
 // orleans storages for clustering (tables) and grain state (blobs); Azurite locally, Azure Storage when published
 var storage = builder.AddAzureStorage("Dst-storage")
@@ -32,23 +36,22 @@ IResourceBuilder<AzureApplicationInsightsResource>? appInsights = null;
 
 if (isPublish)
 {
-    // Resource names are <app>-<type> (type suffix follows the Azure CAF abbreviations); they only need to be unique
-    // inside the cell's resource group, so they are fixed. deploy/cell_apps.bicep relies on the same names.
+    // Keep cell-scoped names aligned with deploy/cell_apps.bicep.
     var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("Dst-logs")
         .ConfigureInfrastructure(infra =>
-            infra.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single().Name = "dst-log");
+            infra.GetProvisionableResources().OfType<OperationalInsightsWorkspace>().Single().Name = CellResourceName(infra, "log"));
     // One VNet per cell: ACA is injected into a delegated subnet, storage is reachable only through private endpoints.
     var vnet = builder.AddAzureVirtualNetwork("Dst-vnet", "10.0.0.0/16")
         .ConfigureInfrastructure(infra =>
-            infra.GetProvisionableResources().OfType<VirtualNetwork>().Single().Name = "dst-vnet");
+            infra.GetProvisionableResources().OfType<VirtualNetwork>().Single().Name = CellResourceName(infra, "vnet"));
     var acaSubnet = vnet.AddSubnet("aca-subnet", "10.0.0.0/23");
     var privateEndpointSubnet = vnet.AddSubnet("private-endpoints", "10.0.2.0/24");
     privateEndpointSubnet.AddPrivateEndpoint(orleansClustering)
         .ConfigureInfrastructure(infra =>
-            ConfigurePrivateEndpoint(infra, "dst-clustering-pep"));
+            ConfigurePrivateEndpoint(infra, CellResourceName(infra, "clustering-pep")));
     privateEndpointSubnet.AddPrivateEndpoint(orleansGrainState)
         .ConfigureInfrastructure(infra =>
-            ConfigurePrivateEndpoint(infra, "dst-grainstate-pep"));
+            ConfigurePrivateEndpoint(infra, CellResourceName(infra, "grainstate-pep")));
 
     // Images live in one global registry (created by the global resources); cells only pull from it.
     var registry = builder.AddAzureContainerRegistry("Dst-registry")
@@ -61,13 +64,13 @@ if (isPublish)
         .ConfigureInfrastructure(infra =>
         {
             var environment = infra.GetProvisionableResources().OfType<ContainerAppManagedEnvironment>().Single();
-            environment.Name = "dst-cae";
+            environment.Name = CellResourceName(infra, "cae");
             // Container Apps creates this group itself (platform load balancer + public IP); naming it keeps it recognisable.
             environment.InfrastructureResourceGroup = BicepFunction.Interpolate($"{BicepFunction.GetResourceGroup().Name}-cae-infra-rg");
         });
     appInsights = builder.AddAzureApplicationInsights("Dst-insights", logAnalytics)
         .ConfigureInfrastructure(infra =>
-            infra.GetProvisionableResources().OfType<ApplicationInsightsComponent>().Single().Name = "dst-appi");
+            infra.GetProvisionableResources().OfType<ApplicationInsightsComponent>().Single().Name = CellResourceName(infra, "appi"));
 }
 else
 {
@@ -100,7 +103,6 @@ else
 }
 
 // Published artifacts are cell-agnostic: cell id and build number become deployment parameters instead of baked-in values.
-IResourceBuilder<ParameterResource>? cellIdParameter = isPublish ? builder.AddParameter("cellId") : null;
 IResourceBuilder<ParameterResource>? buildNumberParameter = isPublish ? builder.AddParameter("buildNumber") : null;
 var cellId = builder.Configuration["APP_CELL_ID"] ?? "local";
 var buildNumber = builder.Configuration["BUILD_NUMBER"] ?? "local";
@@ -165,15 +167,15 @@ if (isPublish)
 {
     foreach (var (project, containerApp, identityName, identity) in new[]
     {
-        (webApi, "dst-web-api-ca", "Dst-web-api-identity", "dst-web-api-id"),
-        (webOrleansSilo, "dst-web-orleans-silo-ca", "Dst-web-orleans-silo-identity", "dst-web-orleans-silo-id"),
+        (webApi, "web-api-ca", "Dst-web-api-identity", "web-api-id"),
+        (webOrleansSilo, "web-orleans-silo-ca", "Dst-web-orleans-silo-identity", "web-orleans-silo-id"),
     })
     {
         var appIdentity = builder.AddAzureUserAssignedIdentity(identityName)
             .ConfigureInfrastructure(infra =>
-                infra.GetProvisionableResources().OfType<UserAssignedIdentity>().Single().Name = identity);
+                infra.GetProvisionableResources().OfType<UserAssignedIdentity>().Single().Name = CellResourceName(infra, identity));
         project.WithAzureUserAssignedIdentity(appIdentity)
-            .PublishAsAzureContainerApp((_, app) => app.Name = containerApp);
+            .PublishAsAzureContainerApp((infra, app) => app.Name = CellResourceName(infra, containerApp));
     }
 
     webApi.WithEnvironment("FrontDoor__Id", builder.AddParameter("frontDoorId"));
@@ -198,11 +200,11 @@ else
     }
 }
 
-static void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra, string name)
+static void ConfigurePrivateEndpoint(AzureResourceInfrastructure infra, BicepValue<string> name)
 {
     var endpoint = infra.GetProvisionableResources().OfType<PrivateEndpoint>().Single();
     endpoint.Name = name;
-    endpoint.CustomNetworkInterfaceName = $"{name}-nic";
+    endpoint.CustomNetworkInterfaceName = BicepFunction.Interpolate($"{name}-nic");
 }
 
 builder.Build().Run();

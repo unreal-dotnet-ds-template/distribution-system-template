@@ -88,8 +88,8 @@ param frontDoorSku string = 'Standard_AzureFrontDoor'
 @description('Name of the global container registry (globally unique, 5-50 alphanumeric characters, so no separators).')
 param registryName string = 'dst${uniqueString(subscription().id, globalResourceGroupName)}acr'
 
-@description('Create an Azure Managed Grafana instance with the cell dashboard (opt-in: it has a monthly cost).')
-param grafanaEnabled bool = false
+@description('Create an Azure Managed Grafana instance with the cell dashboard (enabled by default; incurs Azure charges).')
+param grafanaEnabled bool = true
 
 @description('Managed Grafana tier.')
 @allowed([
@@ -149,6 +149,7 @@ module cellResources 'cell_resources.bicep' = [for cell in cells: if (provisionR
     resourceGroupName: cell.resourceGroupName
     location: cell.region
     principalId: deployerPrincipalId
+    cellId: cell.cellId
     registryName: registryName
     registryResourceGroup: globalResourceGroupName
   }

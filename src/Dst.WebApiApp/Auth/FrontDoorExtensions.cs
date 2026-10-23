@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Dst.WebApiApp.TrafficGeneration;
 
 namespace Dst.WebApiApp.Auth;
 
@@ -39,7 +40,8 @@ internal static class FrontDoorExtensions
         app.UseForwardedHeaders();
         app.Use(async (context, next) =>
         {
-            if (context.Request.Headers[FrontDoorIdHeader] != frontDoorId)
+            if (!SelfTrafficCredential.IsAuthenticated(context)
+                && context.Request.Headers[FrontDoorIdHeader] != frontDoorId)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;

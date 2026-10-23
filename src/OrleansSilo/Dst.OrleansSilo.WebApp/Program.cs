@@ -1,5 +1,4 @@
 using Dst.Core;
-using Dst.OrleansSilo.WebApp.BackgroundServices;
 using Orleans.Dashboard;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,9 +16,6 @@ builder.UseOrleans(siloBuilder =>
     siloBuilder.AddDashboard();
     siloBuilder.AddAzureBlobGrainStorage(DstConsts.OrleansDefaultStoreKey);
 });
-
-//builder.Services.AddHostedService<InitWeatherBackgroundService>();
-//builder.Services.AddHostedService<RandomUpdateWeatherBackgroundService>();
 
 var app = builder.Build();
 
