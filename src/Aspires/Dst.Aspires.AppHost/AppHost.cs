@@ -1,13 +1,12 @@
 #pragma warning disable ASPIREAZURE003 // Aspire Azure networking APIs are still evaluation-only
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Roles;
 using Azure.Provisioning.Network;
 using Azure.Provisioning.OperationalInsights;
+using Azure.Provisioning.Roles;
 using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);

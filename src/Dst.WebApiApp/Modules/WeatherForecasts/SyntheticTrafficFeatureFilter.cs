@@ -1,11 +1,11 @@
 using Microsoft.FeatureManagement;
 
-namespace Dst.WebApiApp.TrafficGeneration;
+namespace Dst.WebApiApp.Modules.WeatherForecasts;
 
-[FilterAlias("TrafficGeneration")]
-internal sealed class TrafficGenerationFeatureFilter : IFeatureFilter
+[FilterAlias("SyntheticTraffic")]
+internal sealed class SyntheticTrafficFeatureFilter : IFeatureFilter
 {
-    public const string FeatureName = "RandomWeatherTraffic";
+    public const string FeatureName = "SyntheticTraffic";
     private int _enabledOverride = -1;
 
     public void SetEnabled(bool enabled) => Volatile.Write(ref _enabledOverride, enabled ? 1 : 0);

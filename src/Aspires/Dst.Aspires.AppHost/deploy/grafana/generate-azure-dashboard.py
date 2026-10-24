@@ -1,12 +1,19 @@
-import copy, json, sys
+import copy
+import json
+import os
+import sys
 
 src, dst = sys.argv[1], sys.argv[2]
 d = json.load(open(src, encoding="utf-8"))
+if not os.path.exists(dst):
+    raise FileNotFoundError(f"Existing Azure dashboard baseline not found: {dst}")
+previous = json.load(open(dst, encoding="utf-8"))
+previous_panels = {p.get("id"): p for p in previous["panels"]}
 
 DS = {"type": "grafana-azure-monitor-datasource", "uid": "__DS_UID__"}
 M = "AppMetrics | where $__timeFilter(TimeGenerated)"
 API = "AppRoleName endswith '/dst-web-api'"
-SILO = "AppRoleName endswith '/dst-web-orleans-silo'"
+SILO = "(AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo')"
 NOT_HEALTH = "tostring(Properties['http.route']) !in ('/health', '/alive')"
 USER_GRAIN = "g !startswith 'sys.' and g !in ('dashboard', 'management')"
 GRAIN = f"{M} | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type'])"
@@ -65,17 +72,40 @@ Q = {
     5: ("time_series", f"{GRAIN} | where not({USER_GRAIN}) | summarize v = max(Sum) by bin(TimeGenerated, 1m), AppRoleInstance, ['Grain type'] = g | summarize Activations = sum(v) by TimeGenerated, ['Grain type'] | order by TimeGenerated asc"),
     30: ("table", f"{GRAIN} | where {USER_GRAIN} | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by ['Grain type'] = g | top 10 by Active desc"),
     31: ("table", f"{GRAIN} | where {USER_GRAIN} | where TimeGenerated > ago(5m) | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by Instance = AppRoleInstance"),
+    33: ("time_series", f"let m = AppMetrics | where $__timeFilter(TimeGenerated) | where {SILO}; "
+        "let readOps = m | where Name == 'orleans-storage-read-latency' | summarize Value = sum(ItemCount) / 60.0 by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Read ops ', Storage); "
+        "let writeOps = m | where Name == 'orleans-storage-write-latency' | summarize Value = sum(ItemCount) / 60.0 by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Write ops ', Storage); "
+        "let readLatency = m | where Name == 'orleans-storage-read-latency' | summarize Value = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Read latency ', Storage); "
+        "let writeLatency = m | where Name == 'orleans-storage-write-latency' | summarize Value = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Write latency ', Storage); "
+        "union readOps, writeOps, readLatency, writeLatency | project TimeGenerated, Value, Series | order by TimeGenerated asc"),
     2: ("table", table_query(API)),
     3: ("table", table_query(SILO)),
+}
+
+# Add changed/new panel ids here and update their Azure Monitor query in Q.
+AZURE_QUERY_OVERRIDES = {33}
+AZURE_DESCRIPTIONS = {
+    2: "One row per Web API replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
+    3: "One row per silo replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
+    30: "The 10 application grain types with the most active instances (in memory) right now, summed across replicas and builds. Labels show only the grain type.",
+    31: "Distribution of currently active application grains across silo replicas (latest samples within 5 minutes). Each slice represents one silo; values are grain counts. The legend includes idle silos with 0; if all counts are zero, there are no slices. System grains are excluded.",
 }
 
 for p in d["panels"]:
     if p["type"] == "text":
         continue
     p["datasource"] = DS
-    fmt, q = Q[p["id"]]
-    qs = q if isinstance(q, list) else [q]
-    p["targets"] = [t(x, fmt, chr(65 + i)) for i, x in enumerate(qs)]
+    old_panel = previous_panels.get(p["id"])
+    if old_panel and p["id"] not in AZURE_QUERY_OVERRIDES:
+        p["targets"] = copy.deepcopy(old_panel["targets"])
+        for target in p["targets"]:
+            target["datasource"] = DS
+    else:
+        fmt, q = Q[p["id"]]
+        qs = q if isinstance(q, list) else [q]
+        p["targets"] = [t(x, fmt, chr(65 + i)) for i, x in enumerate(qs)]
+    if p["id"] in AZURE_DESCRIPTIONS:
+        p["description"] = AZURE_DESCRIPTIONS[p["id"]]
     if p["id"] in (10, 11, 12, 13, 14, 15):
         p.setdefault("options", {}).setdefault("reduceOptions", {})
     if p["id"] == 2 or p["id"] == 3:
@@ -83,11 +113,25 @@ for p in d["panels"]:
         for x in p["transformations"]:
             x["options"]["renameByName"] = {}
     if p["id"] == 31:
-        p["options"]["reduceOptions"] = {"calcs": ["lastNotNull"], "fields": "/^Active$/", "values": True}
+        if not old_panel:
+            p["options"]["reduceOptions"] = {"calcs": ["lastNotNull"], "fields": "", "values": False}
+        p["transformations"] = [{
+            "id": "rowsToFields",
+            "options": {
+                "mappings": [
+                    {"fieldName": "Instance", "handlerKey": "field.name"},
+                    {"fieldName": "Active", "handlerKey": "field.value"},
+                ],
+            },
+        }]
     if p["id"] == 30:
         p["transformations"] = [x for x in p["transformations"] if x["id"] == "sortBy"]
     if p["id"] == 6:
         p["fieldConfig"]["defaults"]["unit"] = "short"
+        if old_panel:
+            display_name = old_panel.get("fieldConfig", {}).get("defaults", {}).get("displayName")
+            if display_name:
+                p["fieldConfig"]["defaults"]["displayName"] = display_name
 
 d["title"] = "Cell overview (Azure)"
 d["uid"] = "dst-cell-overview"

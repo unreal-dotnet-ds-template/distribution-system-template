@@ -15,7 +15,7 @@ Start the AppHost and open the `grafana` endpoint in the Aspire Dashboard. The *
 | **General** | Instance counts, requests per second, response time, failures, and active grains. One glance: is the cell healthy? |
 | **Traffic, failures and latency** | Requests, 5xx failures and average response time on one chart. |
 | **Build version** | A 100%-stacked timeline of the share of reporting instances on each build. Labels show only build numbers; a rollout shows one version replacing another. |
-| **Silos** | Active vs. deactivated grains over time, the top 10 grain types, how grains are spread across silos, and Orleans' own system grains. |
+| **Orleans cluster** | Active vs. deactivated grains over time, the top 10 grain types, how grains are spread across silos, Orleans' own system grains, and grain storage activity. |
 | **Service resources** | One table per service (Web APIs, Silos). One row per instance: CPU, memory, GC heap, threads and queued work. |
 
 Locally, two dropdowns narrow everything down: **Cell** and **Build number**. The Azure dashboard selects the cell; Orleans time series include the build number to distinguish rolling deployments. The Azure Top 10 grain types chart aggregates across builds and replicas, with grain names only.
@@ -61,7 +61,7 @@ Only **metrics** go through the collector. Aspire's own logs and traces still go
 
 ---
 
-## Reading the Silos section
+## Reading the Orleans cluster section
 
 A few things are worth knowing before you trust the numbers.
 
@@ -72,6 +72,8 @@ A few things are worth knowing before you trust the numbers.
 - **Active grains per silo** is a pie chart with one slice per silo, sized by its currently active application-grain count, not historical peaks. Idle silos appear in the legend with `0` but have no slice; when all counts are zero, the pie is empty. Azure uses the latest samples within 5 minutes and lists silos reporting telemetry in that window. After traffic stops and idle grains deactivate, zero is expected.
 
 Disk and host-level RAM aren't shown. The services export only .NET runtime metrics. Host metrics need a collector running on each machine.
+
+The **Grain storage** chart uses Orleans' existing `Microsoft.Orleans` read/write latency histograms. Bars show successful read and write operation rates from histogram counts; lines show the weighted mean latency from histogram sums and counts. Series are grouped by storage provider, aggregating across grains and state names. The chart measures Orleans grain-state calls, not Orleans messaging traffic or the storage service's total workload, and it does not report persisted payload bytes. Use provider-specific telemetry for bytes transferred, capacity, throttling, and service-side request counts.
 
 ### Azure service resources
 
@@ -85,15 +87,15 @@ After updating the dashboard, CPU, memory and GC heap work with existing deploym
 
 ## Synthetic HTTP traffic
 
-`RandomUpdateWeatherBackgroundService` runs in the Web API, not in the silo. It uses `IHttpClientFactory` to POST JSON (`date`, `location`) to its own `/api/commands/weather/update` endpoint. Requests pass through the HTTP middleware, rate limiter and Orleans-backed endpoint, producing HTTP server/client telemetry as well as grain traffic.
+`SyntheticBackgroundService` runs in the Web API, not in the silo. It uses `IHttpClientFactory` to POST JSON (`date`, `location`) to its own `/api/commands/weather/update` endpoint. Requests pass through the HTTP middleware, rate limiter and Orleans-backed endpoint, producing HTTP server/client telemetry as well as grain traffic.
 
-Traffic is **disabled by default**. Microsoft Feature Management reads the `RandomWeatherTraffic` feature from the Web API's [appsettings.json](../src/Dst.WebApiApp/appsettings.json). Its `TrafficGeneration` filter uses `Parameters:Enabled` as the initial state:
+Traffic is **disabled by default**. Microsoft Feature Management reads the `SyntheticTraffic` feature from the Web API's [appsettings.json](../src/Dst.WebApiApp/appsettings.json). Its `SyntheticTraffic` filter uses `Parameters:Enabled` as the initial state:
 
 ```json
 "FeatureManagement": {
-  "RandomWeatherTraffic": {
+  "SyntheticTraffic": {
     "EnabledFor": [
-      { "Name": "TrafficGeneration", "Parameters": { "Enabled": false } }
+      { "Name": "SyntheticTraffic", "Parameters": { "Enabled": false } }
     ]
   }
 }
@@ -101,12 +103,12 @@ Traffic is **disabled by default**. Microsoft Feature Management reads the `Rand
 
 Use the **Feature Flags** group in Scalar:
 
-- `GET /api/features/random-weather-traffic` returns `{ "enabled": false, "requestsPerSecond": 20, "maxRequestsPerSecond": 100 }`.
-- `PUT /api/features/random-weather-traffic` with `{ "enabled": true, "requestsPerSecond": 50 }` enables traffic at 50 requests/second. `requestsPerSecond` is optional (the current rate is kept); use `"enabled": false` to stop. A rate outside `1..maxRequestsPerSecond` returns `400` and changes nothing.
+- `GET /api/features/synthetic-traffic` returns `{ "enabled": false, "requestsPerSecond": 20, "maxRequestsPerSecond": 100 }`.
+- `PUT /api/features/synthetic-traffic` with `{ "enabled": true, "requestsPerSecond": 50 }` enables traffic at 50 requests/second. `requestsPerSecond` is optional (the current rate is kept); use `"enabled": false` to stop. A rate outside `1..maxRequestsPerSecond` returns `400` and changes nothing.
 - These endpoints follow the configured public API authentication. Set `Auth:Mode=JwtBearer` for protected deployments; `None` deliberately leaves the API, including these controls, anonymous.
 - Updates are in-memory, **per replica**, and reset on restart. They take precedence over appsettings until restart. With multiple replicas, requests can reach different instances; configure appsettings consistently for a deployment-wide setting rather than treating this endpoint as a shared flag store. Total load is roughly `requestsPerSecond × replicas`.
 
-The `TrafficGeneration` section sets the defaults:
+The `SyntheticGeneration` section sets the defaults:
 
 | Setting | Default | Meaning |
 |---|---|---|

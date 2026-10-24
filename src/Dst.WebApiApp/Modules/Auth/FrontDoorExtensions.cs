@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
-using Dst.WebApiApp.TrafficGeneration;
+using Dst.WebApiApp.Modules.WeatherForecasts;
 
-namespace Dst.WebApiApp.Auth;
+namespace Dst.WebApiApp.Modules.Auth;
 
 internal static class FrontDoorExtensions
 {
@@ -40,7 +40,7 @@ internal static class FrontDoorExtensions
         app.UseForwardedHeaders();
         app.Use(async (context, next) =>
         {
-            if (!SelfTrafficCredential.IsAuthenticated(context)
+            if (!SelfSyntheticTrafficCredential.IsAuthenticated(context)
                 && context.Request.Headers[FrontDoorIdHeader] != frontDoorId)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 
-namespace Dst.WebApiApp.TrafficGeneration;
+namespace Dst.WebApiApp.Modules.WeatherForecasts;
 
-internal sealed class TrafficGenerationOptions
+internal sealed class SyntheticTrafficOptions
 {
     /// <summary>Absolute per-replica ceiling; <see cref="MaxRequestsPerSecond"/> cannot be configured above it.</summary>
     public const int RequestsPerSecondCeiling = 1000;
@@ -17,7 +17,7 @@ internal sealed class TrafficGenerationOptions
 }
 
 /// <summary>Target request rate: appsettings value unless overridden at runtime through the feature endpoint.</summary>
-internal sealed class TrafficRate(IOptionsMonitor<TrafficGenerationOptions> options)
+internal sealed class TrafficRate(IOptionsMonitor<SyntheticTrafficOptions> options)
 {
     private int _override;
 

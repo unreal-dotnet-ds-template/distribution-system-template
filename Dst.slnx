@@ -16,6 +16,5 @@
   <Folder Name="/tests/">
     <Project Path="tests/Dst.Features.Tests/Dst.Features.Tests.csproj" />
     <Project Path="tests/Dst.HostApplication.Tests/Dst.HostApplication.Tests.csproj" />
-    <Project Path="tests/Dst.WebApiApp.Tests/Dst.WebApiApp.Tests.csproj" />
   </Folder>
 </Solution>
