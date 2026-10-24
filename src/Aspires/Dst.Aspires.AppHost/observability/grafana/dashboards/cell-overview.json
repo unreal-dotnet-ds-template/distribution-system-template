@@ -174,7 +174,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 54
       },
       "id": 22,
       "options": {
@@ -704,7 +704,7 @@
       "id": 20,
       "options": {
         "mode": "markdown",
-        "content": "## Silos"
+        "content": "## Orleans cluster"
       },
       "transparent": true,
       "type": "text"
@@ -831,7 +831,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "id": 2,
       "options": {
@@ -1042,7 +1042,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 56
       },
       "id": 3,
       "options": {
@@ -1327,7 +1327,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "id": 5,
       "options": {
@@ -1355,6 +1355,146 @@
       ],
       "description": "Orleans internal grains (sys.*, dashboard, management), one stacked bar segment per system grain type, summed across silos. Usually flat; a change means silo topology changed.",
       "title": "System grain activations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 65,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 2,
+          "min": 0,
+          "noValue": "No storage activity",
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Read latency.*"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "latency"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Write latency.*"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "latency"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (provider_type_name) (rate(orleans_storage_read_latency_milliseconds_count{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval]))",
+          "legendFormat": "Read ops {{provider_type_name}}",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (provider_type_name) (rate(orleans_storage_write_latency_milliseconds_count{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval]))",
+          "legendFormat": "Write ops {{provider_type_name}}",
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (provider_type_name) (rate(orleans_storage_read_latency_milliseconds_sum{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval])) / sum by (provider_type_name) (rate(orleans_storage_read_latency_milliseconds_count{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval]))",
+          "legendFormat": "Read latency {{provider_type_name}}",
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (provider_type_name) (rate(orleans_storage_write_latency_milliseconds_sum{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval])) / sum by (provider_type_name) (rate(orleans_storage_write_latency_milliseconds_count{app_cell_id=\"$cell\", app_build_number=\"$build\", service_name=\"Dst-web-orleans-silo\"}[$__rate_interval]))",
+          "legendFormat": "Write latency {{provider_type_name}}",
+          "refId": "D"
+        }
+      ],
+      "description": "Successful read and write operation rates (bars) and weighted mean read and write latency (lines), grouped by storage provider across states.",
+      "title": "Grain storage",
       "type": "timeseries"
     }
   ],

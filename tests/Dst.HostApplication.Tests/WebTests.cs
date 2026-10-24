@@ -15,8 +15,8 @@ public class WebTests
 
         var webApi = appHost.Resources.OfType<ProjectResource>().Single(resource => resource.Name == "Dst-web-api");
         appHost.CreateResourceBuilder(webApi)
-            .WithEnvironment("TrafficGeneration__StartupDelay", "00:00:00")
-            .WithEnvironment("TrafficGeneration__RequestsPerSecond", "4");
+            .WithEnvironment("SyntheticGeneration__StartupDelay", "00:00:00")
+            .WithEnvironment("SyntheticGeneration__RequestsPerSecond", "4");
 
         appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {

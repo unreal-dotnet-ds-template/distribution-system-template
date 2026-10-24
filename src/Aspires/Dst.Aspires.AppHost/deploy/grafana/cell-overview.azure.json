@@ -151,10 +151,12 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'; let silos = m | summarize by AppRoleInstance; let builds = m | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize arg_max(TimeGenerated, Build) by AppRoleInstance | project AppRoleInstance, Build; let grains = m | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where isnotempty(g) and g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by AppRoleInstance; silos | join kind=leftouter grains on AppRoleInstance | join kind=leftouter builds on AppRoleInstance | project Instance = strcat(AppRoleInstance, ' @ ', iff(isempty(Build), 'unknown', Build)), Active = coalesce(Active, 0.0) | order by Instance asc"
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or (AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'); let silos = m | summarize by AppRoleInstance; let builds = m | where Name == 'dst.build.info' | extend Build = tostring(Properties['app.build.number']) | where isnotempty(Build) | summarize arg_max(TimeGenerated, Build) by AppRoleInstance | project AppRoleInstance, Build; let grains = m | where Name == 'orleans-catalog-activations' | extend g = tostring(Properties['grain_type']) | where isnotempty(g) and g !startswith 'sys.' and g !in ('dashboard', 'management') | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, g | summarize Active = sum(Sum) by AppRoleInstance; silos | join kind=leftouter grains on AppRoleInstance | join kind=leftouter builds on AppRoleInstance | project Instance = strcat(AppRoleInstance, ' @ ', iff(isempty(Build), 'unknown', Build)), Active = coalesce(Active, 0.0) | order by Instance asc"
           }
         }
       ],
+      "title": "Active grains per silo",
+      "type": "piechart",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -171,9 +173,7 @@
             ]
           }
         }
-      ],
-      "title": "Active grains per silo",
-      "type": "piechart"
+      ]
     },
     {
       "gridPos": {
@@ -195,7 +195,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 54
       },
       "id": 22,
       "options": {
@@ -805,7 +805,7 @@
       "id": 20,
       "options": {
         "mode": "markdown",
-        "content": "## Silos"
+        "content": "## Orleans cluster"
       },
       "transparent": true,
       "type": "text"
@@ -932,7 +932,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "id": 2,
       "options": {
@@ -1107,7 +1107,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 56
       },
       "id": 3,
       "options": {
@@ -1133,7 +1133,7 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'; let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
+            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or (AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'); let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
           }
         }
       ],
@@ -1353,7 +1353,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "id": 5,
       "options": {
@@ -1390,6 +1390,137 @@
       ],
       "description": "Orleans internal grains (sys.*, dashboard, management), one stacked bar segment per system grain type, summed across silos. Usually flat; a change means silo topology changed.",
       "title": "System grain activations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DS_UID__"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 65,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "decimals": 2,
+          "min": 0,
+          "noValue": "No storage activity",
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Read latency.*"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "latency"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Write latency.*"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "latency"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "__DS_UID__"
+          },
+          "azureLogAnalytics": {
+            "resultFormat": "time_series",
+            "resources": [
+              "$cell"
+            ],
+            "query": "let m = AppMetrics | where $__timeFilter(TimeGenerated) | where (AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'); let readOps = m | where Name == 'orleans-storage-read-latency' | summarize Value = sum(ItemCount) / 60.0 by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Read ops ', Storage); let writeOps = m | where Name == 'orleans-storage-write-latency' | summarize Value = sum(ItemCount) / 60.0 by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Write ops ', Storage); let readLatency = m | where Name == 'orleans-storage-read-latency' | summarize Value = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Read latency ', Storage); let writeLatency = m | where Name == 'orleans-storage-write-latency' | summarize Value = sum(Sum) / sum(ItemCount) by bin(TimeGenerated, 1m), Storage = tostring(Properties['provider_type_name']) | extend Series = strcat('Write latency ', Storage); union readOps, writeOps, readLatency, writeLatency | project TimeGenerated, Value, Series | order by TimeGenerated asc"
+          }
+        }
+      ],
+      "description": "Successful read and write operation rates (bars) and weighted mean read and write latency (lines), grouped by storage provider across states.",
+      "title": "Grain storage",
       "type": "timeseries"
     }
   ],

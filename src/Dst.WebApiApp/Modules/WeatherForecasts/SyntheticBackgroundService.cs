@@ -2,23 +2,23 @@ using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography;
 using Dst.Core.Features.WeatherForecasts;
-using Dst.WebApiApp.WeatherForecasts;
+using Dst.WebApiApp.Modules.WeatherForecasts;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Options;
 using Microsoft.FeatureManagement;
 
-namespace Dst.WebApiApp.TrafficGeneration;
+namespace Dst.WebApiApp.Modules.WeatherForecasts;
 
-internal sealed partial class RandomUpdateWeatherBackgroundService(
+internal sealed partial class SyntheticBackgroundService(
     IHttpClientFactory httpClientFactory,
     IFeatureManager features,
     TrafficRate rate,
     IServer server,
     IHostApplicationLifetime lifetime,
-    SelfTrafficCredential credential,
-    IOptionsMonitor<TrafficGenerationOptions> options,
-    ILogger<RandomUpdateWeatherBackgroundService> logger) : BackgroundService
+    SelfSyntheticTrafficCredential credential,
+    IOptionsMonitor<SyntheticTrafficOptions> options,
+    ILogger<SyntheticBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan ReportInterval = TimeSpan.FromSeconds(30);
@@ -48,9 +48,9 @@ internal sealed partial class RandomUpdateWeatherBackgroundService(
         // Concurrency is fixed for the process lifetime; change MaxConcurrency and restart to resize it.
         var maxConcurrency = options.CurrentValue.MaxConcurrency;
         using var concurrency = new SemaphoreSlim(maxConcurrency, maxConcurrency);
-        using var client = httpClientFactory.CreateClient(SelfTrafficCredential.Scheme);
+        using var client = httpClientFactory.CreateClient(SelfSyntheticTrafficCredential.Scheme);
         client.BaseAddress = GetLoopbackAddress(server);
-        client.DefaultRequestHeaders.Add(SelfTrafficCredential.HeaderName, credential.Token);
+        client.DefaultRequestHeaders.Add(SelfSyntheticTrafficCredential.HeaderName, credential.Token);
 
         try
         {
@@ -88,7 +88,7 @@ internal sealed partial class RandomUpdateWeatherBackgroundService(
             int requestsPerSecond;
             try
             {
-                enabled = await features.IsEnabledAsync(TrafficGenerationFeatureFilter.FeatureName).ConfigureAwait(false);
+                enabled = await features.IsEnabledAsync(SyntheticTrafficFeatureFilter.FeatureName).ConfigureAwait(false);
                 requestsPerSecond = rate.RequestsPerSecond;
             }
             catch (OptionsValidationException exception)
@@ -144,7 +144,7 @@ internal sealed partial class RandomUpdateWeatherBackgroundService(
             var date = new DateOnly(DateTime.UtcNow.Year, 1, 1).AddDays(RandomNumberGenerator.GetInt32(365));
             var location = WeatherHelper.Locations[RandomNumberGenerator.GetInt32(WeatherHelper.Locations.Count)];
             using var response = await client.PostAsJsonAsync(
-                SelfTrafficCredential.UpdatePath,
+                SelfSyntheticTrafficCredential.UpdatePath,
                 new UpdateWeatherRequest(date, location),
                 stoppingToken).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
@@ -211,7 +211,7 @@ internal sealed partial class RandomUpdateWeatherBackgroundService(
             .Select(address => Uri.TryCreate(address.Replace("://+:", "://0.0.0.0:", StringComparison.Ordinal)
                 .Replace("://*:", "://0.0.0.0:", StringComparison.Ordinal), UriKind.Absolute, out var uri) ? uri : null)
             .FirstOrDefault(address => address?.Scheme == Uri.UriSchemeHttp)
-            ?? throw new InvalidOperationException("HTTP traffic generation requires an HTTP listener on the Web API.");
+            ?? throw new InvalidOperationException("HTTP Synthetic requires an HTTP listener on the Web API.");
         // Wildcard binds ([::] in containers) also accept IPv4, and IPv6 loopback may not exist (Azure Container Apps).
         var loopback = address.HostNameType == UriHostNameType.IPv6
             && IPAddress.TryParse(address.Host.Trim('[', ']'), out var bound) && IPAddress.IsLoopback(bound)

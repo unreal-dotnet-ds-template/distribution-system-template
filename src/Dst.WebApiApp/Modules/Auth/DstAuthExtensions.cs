@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
-using Dst.WebApiApp.TrafficGeneration;
+using Dst.WebApiApp.Modules.WeatherForecasts;
 
-namespace Dst.WebApiApp.Auth;
+namespace Dst.WebApiApp.Modules.Auth;
 
 internal enum DstAuthMode
 {
@@ -194,6 +194,6 @@ internal static class DstAuthExtensions
     public static TBuilder WithWeatherTrafficAuthorization<TBuilder>(this TBuilder builder, DstAuthOptions options)
         where TBuilder : IEndpointConventionBuilder
         => options.Mode == DstAuthMode.None ? builder : builder.RequireAuthorization(policy =>
-            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, SelfTrafficCredential.Scheme)
+            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, SelfSyntheticTrafficCredential.Scheme)
                 .RequireAuthenticatedUser());
 }

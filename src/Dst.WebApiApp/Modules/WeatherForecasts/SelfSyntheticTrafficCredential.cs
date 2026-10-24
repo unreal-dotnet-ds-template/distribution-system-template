@@ -6,12 +6,12 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace Dst.WebApiApp.TrafficGeneration;
+namespace Dst.WebApiApp.Modules.WeatherForecasts;
 
-internal sealed class SelfTrafficCredential
+internal sealed class SelfSyntheticTrafficCredential
 {
-    public const string Scheme = "SelfTraffic";
-    public const string HeaderName = "X-Dst-Self-Traffic";
+    public const string Scheme = "SelfSyntheticTraffic";
+    public const string HeaderName = "X-Dst-Self-Synthetic-Traffic";
     public const string UpdatePath = "/api/commands/weather/update";
     private const string ForwardedForHeader = "X-Forwarded-For";
     private const string OriginalForHeader = "X-Original-For";
@@ -46,22 +46,22 @@ internal sealed class SelfTrafficCredential
     public static bool IsAuthenticated(HttpContext context) => context.Items.ContainsKey(AuthenticatedRequestKey);
 }
 
-internal sealed class SelfTrafficAuthenticationHandler(
+internal sealed class SelfSyntheticTrafficAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!SelfTrafficCredential.IsAuthenticated(Context))
+        if (!SelfSyntheticTrafficCredential.IsAuthenticated(Context))
         {
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, "weather-traffic-generator")],
-            SelfTrafficCredential.Scheme);
+            [new Claim(ClaimTypes.NameIdentifier, "synthetic-traffic-generator")],
+            SelfSyntheticTrafficCredential.Scheme);
         return Task.FromResult(AuthenticateResult.Success(
-            new AuthenticationTicket(new ClaimsPrincipal(identity), SelfTrafficCredential.Scheme)));
+            new AuthenticationTicket(new ClaimsPrincipal(identity), SelfSyntheticTrafficCredential.Scheme)));
     }
 }

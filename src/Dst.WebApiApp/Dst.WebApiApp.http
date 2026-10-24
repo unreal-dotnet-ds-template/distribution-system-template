@@ -1,19 +1,19 @@
 @baseUrl = http://localhost:5252
 @accessToken = replace-with-your-access-token
 
-### Read this replica's traffic state (omit Authorization when Auth:Mode=None).
-GET {{baseUrl}}/api/features/random-weather-traffic
+### Read this replica's synthetic traffic state (omit Authorization when Auth:Mode=None).
+GET {{baseUrl}}/api/features/synthetic-traffic
 Authorization: Bearer {{accessToken}}
 
 ### Enable synthetic HTTP traffic at 50 requests/second on this replica until restart.
-PUT {{baseUrl}}/api/features/random-weather-traffic
+PUT {{baseUrl}}/api/features/synthetic-traffic
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 { "enabled": true, "requestsPerSecond": 50 }
 
 ### Disable synthetic HTTP traffic on this replica (the rate is kept for the next enable).
-PUT {{baseUrl}}/api/features/random-weather-traffic
+PUT {{baseUrl}}/api/features/synthetic-traffic
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 

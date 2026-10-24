@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
-using Dst.WebApiApp.TrafficGeneration;
+using Dst.WebApiApp.Modules.WeatherForecasts;
 
-namespace Dst.WebApiApp.RateLimiting;
+namespace Dst.WebApiApp.Modules.RateLimiting;
 
 internal static class DstRateLimitingExtensions
 {
@@ -13,9 +13,9 @@ internal static class DstRateLimitingExtensions
         {
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             limiter.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                // Verified self-calls all share 127.0.0.1; their rate is capped by TrafficGeneration:MaxRequestsPerSecond instead.
-                SelfTrafficCredential.IsAuthenticated(context)
-                    ? RateLimitPartition.GetNoLimiter(SelfTrafficCredential.Scheme)
+                // Verified self-calls all share 127.0.0.1; their rate is capped by SyntheticGeneration:MaxRequestsPerSecond instead.
+                SelfSyntheticTrafficCredential.IsAuthenticated(context)
+                    ? RateLimitPartition.GetNoLimiter(SelfSyntheticTrafficCredential.Scheme)
                     : RateLimitPartition.GetFixedWindowLimiter(
                         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                         _ => new FixedWindowRateLimiterOptions
