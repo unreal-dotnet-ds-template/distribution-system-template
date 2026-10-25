@@ -46,7 +46,7 @@
     <PackageVersion Include="Microsoft.Orleans.Client" Version="10.4.0" />
   </ItemGroup>
   <ItemGroup Label="Aspire-Orleans">
-    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.6.4" />
     <PackageVersion Include="Aspire.Hosting.Azure.Network" Version="13.6.2" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.6.2" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.6.2" />
