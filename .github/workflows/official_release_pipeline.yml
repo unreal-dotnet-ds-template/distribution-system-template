@@ -92,7 +92,8 @@ jobs:
         run: |
           # the build pipeline already pushed tag v<version>; --verify-tag makes sure no second tag is created
           TAG="v${{ steps.version.outputs.version }}"
-          gh release create "$TAG" ./artifacts/** \
+          (cd ./artifacts && zip -r "../dst-binaries-${TAG}.zip" .)
+          gh release create "$TAG" "dst-binaries-${TAG}.zip" \
             --verify-tag \
             --title "Release $TAG" \
             --notes "Released from build run [${{ steps.resolve.outputs.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.resolve.outputs.run_id }})" \
