@@ -39,7 +39,7 @@
     <PackageVersion Include="Microsoft.Orleans.Dashboard" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="10.4.0" />
-    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="13.6.2" />
+    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="13.6.4" />
     <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.6.2" />
   </ItemGroup>
   <ItemGroup Label="Orleans-Client">
