@@ -143,7 +143,13 @@ jobs:
           # Object id of the logged-in service principal, read from the ARM token ('oid' claim).
           # Avoids 'az ad sp show', which needs Microsoft Graph read permission that a deploy identity usually lacks.
           TOKEN=$(az account get-access-token --query accessToken -o tsv)
-          OID=$(python3 -c 'import base64,json,sys; p=sys.argv[1].split(".")[1]; print(json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))["oid"])' "$TOKEN")
+          # Extract service principal OID from the JWT token's payload using jq and base64.
+          PAYLOAD=$(echo "$TOKEN" | cut -d'.' -f2 | tr '_-' '/+')
+          PAD=$(( (4 - ${#PAYLOAD} % 4) % 4 ))
+          [ $PAD -eq 1 ] && PAYLOAD="${PAYLOAD}="
+          [ $PAD -eq 2 ] && PAYLOAD="${PAYLOAD}=="
+          [ $PAD -eq 3 ] && PAYLOAD="${PAYLOAD}==="
+          OID=$(echo "$PAYLOAD" | base64 -d | jq -r '.oid')
           echo "::add-mask::$OID"
           echo "DEPLOYER_PRINCIPAL_ID=$OID" >> "$GITHUB_ENV"
 
