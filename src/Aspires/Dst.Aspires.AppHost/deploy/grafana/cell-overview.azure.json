@@ -10,7 +10,6 @@
         "type": "grafana-azure-monitor-datasource",
         "uid": "__DS_UID__"
       },
-      "description": "The 10 application grain types with the most active instances (in memory) right now, summed across replicas and builds. Labels show only the grain type.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -71,6 +70,9 @@
           }
         }
       ],
+      "title": "Top 10 grain types",
+      "type": "barchart",
+      "description": "The 10 application grain types with the most active instances (in memory) right now, summed across replicas and builds. Labels show only the grain type.",
       "transformations": [
         {
           "id": "sortBy",
@@ -84,16 +86,13 @@
             ]
           }
         }
-      ],
-      "title": "Top 10 grain types",
-      "type": "barchart"
+      ]
     },
     {
       "datasource": {
         "type": "grafana-azure-monitor-datasource",
         "uid": "__DS_UID__"
       },
-      "description": "Distribution of currently active application grains across silo replicas (latest samples within 5 minutes). Each slice represents one silo; values are grain counts. The legend includes idle silos with 0; if all counts are zero, there are no slices. System grains are excluded.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -157,6 +156,7 @@
       ],
       "title": "Active grains per silo",
       "type": "piechart",
+      "description": "Distribution of currently active application grains across silo replicas (latest samples within 5 minutes). Each slice represents one silo; values are grain counts. The legend includes idle silos with 0; if all counts are zero, there are no slices. System grains are excluded.",
       "transformations": [
         {
           "id": "rowsToFields",
@@ -958,10 +958,13 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-api-ca' or AppRoleName endswith '/dst-web-api'; let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
+            "query": "let win = 5m; AppMetrics | where TimeGenerated > ago(win) | where (AppRoleName endswith '-web-api-ca' or AppRoleName endswith '/dst-web-api') | where Name in ('dotnet.process.cpu.time', 'dotnet.process.cpu.count', 'dotnet.process.memory.working_set', 'dotnet.gc.last_collection.heap.size', 'dst.process.thread_pool.thread.count', 'dst.process.thread_pool.queue.length') | summarize arg_max(TimeGenerated, Sum), cpuSum = sum(Sum) by AppRoleInstance, Name, gen = tostring(Properties['gc.heap.generation']) | summarize cpuSec = sumif(cpuSum, Name == 'dotnet.process.cpu.time'), cores = take_anyif(Sum, Name == 'dotnet.process.cpu.count'), Mem = take_anyif(Sum, Name == 'dotnet.process.memory.working_set'), Heap = sumif(Sum, Name == 'dotnet.gc.last_collection.heap.size'), Thr = take_anyif(Sum, Name == 'dst.process.thread_pool.thread.count'), Q = take_anyif(Sum, Name == 'dst.process.thread_pool.queue.length') by Instance = AppRoleInstance | project Instance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = iff(isnotnull(Q), max_of(Q, 0.0), real(null)) | order by Instance asc"
           }
         }
       ],
+      "title": "Web APIs",
+      "type": "table",
+      "description": "One row per Web API replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
       "transformations": [
         {
           "options": {
@@ -980,10 +983,7 @@
           },
           "id": "organize"
         }
-      ],
-      "description": "One row per Web API replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
-      "title": "Web APIs",
-      "type": "table"
+      ]
     },
     {
       "datasource": {
@@ -1133,10 +1133,13 @@
             "resources": [
               "$cell"
             ],
-            "query": "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where AppRoleName endswith '-web-orleans-silo-ca' or (AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo'); let instances = m | summarize by AppRoleInstance; let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; let thr = m | where Name == 'dst.process.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; let q = m | where Name == 'dst.process.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; instances | join kind=leftouter cpu on AppRoleInstance | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance | join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance | project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * cores), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = Q | order by Instance asc"
+            "query": "let win = 5m; AppMetrics | where TimeGenerated > ago(win) | where (AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo') | where Name in ('dotnet.process.cpu.time', 'dotnet.process.cpu.count', 'dotnet.process.memory.working_set', 'dotnet.gc.last_collection.heap.size', 'dst.process.thread_pool.thread.count', 'dst.process.thread_pool.queue.length') | summarize arg_max(TimeGenerated, Sum), cpuSum = sum(Sum) by AppRoleInstance, Name, gen = tostring(Properties['gc.heap.generation']) | summarize cpuSec = sumif(cpuSum, Name == 'dotnet.process.cpu.time'), cores = take_anyif(Sum, Name == 'dotnet.process.cpu.count'), Mem = take_anyif(Sum, Name == 'dotnet.process.memory.working_set'), Heap = sumif(Sum, Name == 'dotnet.gc.last_collection.heap.size'), Thr = take_anyif(Sum, Name == 'dst.process.thread_pool.thread.count'), Q = take_anyif(Sum, Name == 'dst.process.thread_pool.queue.length') by Instance = AppRoleInstance | project Instance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), ['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = iff(isnotnull(Q), max_of(Q, 0.0), real(null)) | order by Instance asc"
           }
         }
       ],
+      "title": "Silos",
+      "type": "table",
+      "description": "One row per silo replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
       "transformations": [
         {
           "options": {
@@ -1155,10 +1158,7 @@
           },
           "id": "organize"
         }
-      ],
-      "description": "One row per silo replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero.",
-      "title": "Silos",
-      "type": "table"
+      ]
     },
     {
       "datasource": {
@@ -1524,7 +1524,6 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "15s",
   "schemaVersion": 41,
   "tags": [
     "aspire",
@@ -1544,13 +1543,14 @@
       }
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Cell overview (Azure)",
   "uid": "dst-cell-overview",
-  "version": 1
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  }
 }
