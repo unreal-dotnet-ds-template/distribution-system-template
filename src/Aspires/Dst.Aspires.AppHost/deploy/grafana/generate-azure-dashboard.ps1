@@ -62,7 +62,7 @@ $DS = [ordered]@{
 }
 
 $M = 'AppMetrics | where $__timeFilter(TimeGenerated)'
-$API = "AppRoleName endswith '/dst-web-api'"
+$API = "(AppRoleName endswith '-web-api-ca' or AppRoleName endswith '/dst-web-api')"
 $SILO = "(AppRoleName endswith '-web-orleans-silo-ca' or AppRoleName endswith '/dst-web-orleans-silo')"
 $NOT_HEALTH = "tostring(Properties['http.route']) !in ('/health', '/alive')"
 $USER_GRAIN = "g !startswith 'sys.' and g !in ('dashboard', 'management')"
@@ -86,17 +86,27 @@ function Get-ActiveByBin([string]$whereClause) {
 }
 
 function Get-TableQuery([string]$role) {
-    return "let win = 5m; let m = AppMetrics | where TimeGenerated > ago(win) | where $role; " +
-        "let cpu = m | where Name == 'dotnet.process.cpu.time' | summarize cpuSec = sum(Sum) by AppRoleInstance; " +
-        "let cores = m | where Name == 'dotnet.process.cpu.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, cores = Sum; " +
-        "let mem = m | where Name == 'dotnet.process.memory.working_set' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Mem = Sum; " +
-        "let heap = m | where Name == 'dotnet.gc.last_collection.heap.size' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance, gen = tostring(Properties['gc.heap.generation']) | summarize Heap = sum(Sum) by AppRoleInstance; " +
-        "let thr = m | where Name == 'dotnet.thread_pool.thread.count' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Thr = Sum; " +
-        "let q = m | where Name == 'dotnet.thread_pool.queue.length' | summarize arg_max(TimeGenerated, Sum) by AppRoleInstance | project AppRoleInstance, Q = Sum; " +
-        "cpu | join kind=leftouter cores on AppRoleInstance | join kind=leftouter mem on AppRoleInstance " +
-        "| join kind=leftouter heap on AppRoleInstance | join kind=leftouter thr on AppRoleInstance | join kind=leftouter q on AppRoleInstance " +
-        "| project Instance = AppRoleInstance, CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), " +
-        "['Memory (working set)'] = Mem, ['GC heap'] = Heap, Threads = Thr, ['Queued work'] = max_of(Q, 0.0) | order by Instance asc"
+    return "let win = 5m; " +
+        "AppMetrics " +
+        "| where TimeGenerated > ago(win) " +
+        "| where $role " +
+        "| where Name in ('dotnet.process.cpu.time', 'dotnet.process.cpu.count', 'dotnet.process.memory.working_set', 'dotnet.gc.last_collection.heap.size', 'dst.process.thread_pool.thread.count', 'dst.process.thread_pool.queue.length') " +
+        "| summarize arg_max(TimeGenerated, Sum), cpuSum = sum(Sum) by AppRoleInstance, Name, gen = tostring(Properties['gc.heap.generation']) " +
+        "| summarize " +
+            "cpuSec = sumif(cpuSum, Name == 'dotnet.process.cpu.time'), " +
+            "cores = take_anyif(Sum, Name == 'dotnet.process.cpu.count'), " +
+            "Mem = take_anyif(Sum, Name == 'dotnet.process.memory.working_set'), " +
+            "Heap = sumif(Sum, Name == 'dotnet.gc.last_collection.heap.size'), " +
+            "Thr = take_anyif(Sum, Name == 'dst.process.thread_pool.thread.count'), " +
+            "Q = take_anyif(Sum, Name == 'dst.process.thread_pool.queue.length') " +
+            "by Instance = AppRoleInstance " +
+        "| project Instance, " +
+            "CPU = 100.0 * cpuSec / (toreal(win / 1s) * max_of(cores, 1.0)), " +
+            "['Memory (working set)'] = Mem, " +
+            "['GC heap'] = Heap, " +
+            "Threads = Thr, " +
+            "['Queued work'] = iff(isnotnull(Q), max_of(Q, 0.0), real(null)) " +
+        "| order by Instance asc"
 }
 
 $createdQuery = $GRAIN.Replace('orleans-catalog-activations', 'orleans-catalog-activation-created')
@@ -137,7 +147,7 @@ $Q = @{
 }
 
 # Add changed/new panel IDs here to force updating their Azure Monitor query in Q.
-$AZURE_QUERY_OVERRIDES = [System.Collections.Generic.HashSet[int]]::new([int[]]@(33))
+$AZURE_QUERY_OVERRIDES = [System.Collections.Generic.HashSet[int]]::new([int[]]@(2, 3, 33))
 
 $AZURE_DESCRIPTIONS = @{
     2  = "One row per Web API replica reporting in the last five minutes. CPU is a five-minute average normalized by the runtime-reported processor count, not the ACA vCPU allocation. Memory is the OS working set; GC heap is the managed heap after the last collection. Threads and queued work are current thread-pool gauges (require redeployment); missing samples stay blank, not zero."
@@ -157,12 +167,13 @@ foreach ($p in $d.panels) {
 
     if ($null -ne $oldPanel -and -not $AZURE_QUERY_OVERRIDES.Contains($panelId)) {
         # Clone old targets
-        $targetsJson = $oldPanel.targets | ConvertTo-Json -Depth 50
-        $clonedTargets = $targetsJson | ConvertFrom-Json
+        $targets = @($oldPanel.targets)
+        $targetsJson = ,$targets | ConvertTo-Json -Depth 50
+        $clonedTargets = @($targetsJson | ConvertFrom-Json)
         foreach ($target in $clonedTargets) {
             $target.datasource = $DS
         }
-        $p.targets = $clonedTargets
+        $p.targets = [object[]]@($clonedTargets)
     } else {
         $qEntry = $Q[$panelId]
         $fmt = $qEntry[0]
@@ -172,11 +183,11 @@ foreach ($p in $d.panels) {
             $refLetter = [char](65 + $i)
             [void]$newTargets.Add((New-Target -query $queries[$i] -fmt $fmt -ref ([string]$refLetter)))
         }
-        $p.targets = $newTargets.ToArray()
+        $p.targets = [object[]]$newTargets.ToArray()
     }
 
     if ($AZURE_DESCRIPTIONS.ContainsKey($panelId)) {
-        $p.description = $AZURE_DESCRIPTIONS[$panelId]
+        $p | Add-Member -MemberType NoteProperty -Name description -Value $AZURE_DESCRIPTIONS[$panelId] -Force
     }
 
     if ($panelId -in @(10, 11, 12, 13, 14, 15)) {
@@ -201,7 +212,7 @@ foreach ($p in $d.panels) {
                 }
             }
         }
-        $p.transformations = $keepTransforms
+        $p | Add-Member -MemberType NoteProperty -Name transformations -Value $keepTransforms -Force
     }
 
     if ($panelId -eq 31) {
@@ -215,7 +226,7 @@ foreach ($p in $d.panels) {
                 values = $false
             }) -Force
         }
-        $p.transformations = @(
+        $p | Add-Member -MemberType NoteProperty -Name transformations -Value @(
             [PSCustomObject]@{
                 id      = "rowsToFields"
                 options = [PSCustomObject]@{
@@ -225,7 +236,7 @@ foreach ($p in $d.panels) {
                     )
                 }
             }
-        )
+        ) -Force
     }
 
     if ($panelId -eq 30) {
@@ -237,7 +248,7 @@ foreach ($p in $d.panels) {
                 }
             }
         }
-        $p.transformations = $keepTransforms
+        $p | Add-Member -MemberType NoteProperty -Name transformations -Value $keepTransforms -Force
     }
 
     if ($panelId -eq 6) {
@@ -259,6 +270,11 @@ foreach ($p in $d.panels) {
 
 $d.title = "Cell overview (Azure)"
 $d.uid = "dst-cell-overview"
+$d | Add-Member -MemberType NoteProperty -Name refresh -Value "5m" -Force
+$d | Add-Member -MemberType NoteProperty -Name time -Value ([PSCustomObject]@{
+    from = "now-15m"
+    to   = "now"
+}) -Force
 $d.templating = [PSCustomObject]@{
     list = @(
         [PSCustomObject]@{
