@@ -2,6 +2,7 @@
 # setup-repo.sh
 #
 # Run this once after creating a new repository from this template.
+# Used manually; it is not called by a CI/CD workflow.
 # Requires the GitHub CLI (gh) to be installed and authenticated.
 #
 # Usage:
