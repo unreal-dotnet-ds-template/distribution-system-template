@@ -18,7 +18,7 @@ Only this folder is hand-written.
 | Parameter | Env var | Meaning |
 |---|---|---|
 | `mode` | `DEPLOY_MODE` | `full`, `provision_only` or `deploy_only` |
-| `cellKeys` | `CELL_KEYS` | JSON array of keys from the catalog, e.g. `["cell_1_westus"]` |
+| `cellKeys` | `CELL_KEYS` | JSON array of keys from the catalog, e.g. `["cell_1_westeurope"]` |
 | `appVersion` | `APP_VERSION` | Image tag and `BUILD_NUMBER` |
 | `deployerPrincipalId` | `DEPLOYER_PRINCIPAL_ID` | Object id of the deploying identity |
 | `deployerPrincipalType` | `DEPLOYER_PRINCIPAL_TYPE` | `ServicePrincipal` (default, pipeline) or `User` (local run with `az login`) |
@@ -60,7 +60,7 @@ Running `full` directly works only when the images for `appVersion` are already 
 ## Cells
 
 The catalog in `main.bicep` maps a key to a cell id and an Azure region. A cell is the resource group `dst-<cellId>-<region>-rg` and one Orleans cluster (`dst-<cellId>`); cells never talk to each other.
-Keys follow `cell_<cellId>_<region>` (the release pipeline derives the resource group from the key), e.g. `cell_1_westus`, `cell_2_eastus`, `cell_3_northeurope`.
+Keys follow `cell_<cellId>_<region>` (the release pipeline derives the resource group from the key), e.g. `cell_1_westeurope`, `cell_2_eastus`, `cell_3_northeurope`.
 To add a cell, add an entry to `cellCatalog` and pass its key in `cellKeys`.
 
 ## Naming convention
@@ -126,7 +126,7 @@ The placeholders only satisfy the CLI; real values are supplied at deployment ti
 
 ```powershell
 $env:APP_VERSION = '0.0.1-local'     # also the image tag
-$env:CELL_KEYS = '["cell_1_westus"]'
+$env:CELL_KEYS = '["cell_1_westeurope"]'
 az bicep build --file deploy\main.bicep --stdout > $null
 az login                              # once
 $env:DEPLOYER_PRINCIPAL_ID = az ad signed-in-user show --query id -o tsv
@@ -209,9 +209,9 @@ az deployment sub create --name dst-apps-local --location westeurope --parameter
 ```powershell
 az deployment sub list --query "[?starts_with(name,'dst-')].{n:name,s:properties.provisioningState}" -o table
 az deployment operation sub list --name dst-apps-local --query "[?properties.provisioningState=='Failed'].properties.statusMessage" -o json   # why it failed
-az deployment group list -g dst-1-westus-rg -o table                                                                                          # nested modules
-az containerapp list -g dst-1-westus-rg --query "[].{n:name,latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName}" -o table
-az containerapp logs show -g dst-1-westus-rg -n dst-1-web-api-ca --follow
+az deployment group list -g dst-1-westeurope-rg -o table                                                                                          # nested modules
+az containerapp list -g dst-1-westeurope-rg --query "[].{n:name,latest:properties.latestRevisionName,ready:properties.latestReadyRevisionName}" -o table
+az containerapp logs show -g dst-1-westeurope-rg -n dst-1-web-api-ca --follow
 $fd = az afd endpoint list -g dst-global-rg --profile-name dst-afd --query "[0].hostName" -o tsv
 curl "https://$fd/health"
 ```
@@ -263,7 +263,7 @@ $env:GRAFANA_ENABLED = 'false'    # optional opt-out before step 3 (provision)
 ### Redeploy and cleanup
 
 - New app version: repeat steps 4 and 5 with a new `APP_VERSION`. Infra change: repeat step 3 first.
-- Cleanup: `az group delete -n dst-global-rg --yes --no-wait` and `az group delete -n dst-1-westus-rg --yes --no-wait` (the Container Apps infrastructure group `dst-1-westus-rg-cae-infra-rg` is removed with the environment). Entra apps `dst-api` / `dst-scalar` (if created) must be deleted separately.
+- Cleanup: `az group delete -n dst-global-rg --yes --no-wait` and `az group delete -n dst-1-westeurope-rg --yes --no-wait` (the Container Apps infrastructure group `dst-1-westeurope-rg-cae-infra-rg` is removed with the environment). Entra apps `dst-api` / `dst-scalar` (if created) must be deleted separately.
 
 `cell_apps.bicep` mirrors Aspire's deterministic resource naming; re-run the build above after renaming AppHost resources.
 
@@ -307,7 +307,7 @@ gh variable set AZURE_SUBSCRIPTION_ID -e azure -R $repo -b $sub
 
 Also under repo Settings → Actions → General → Workflow permissions allow read and write (the build pipeline pushes `v*` tags), and make sure no tag protection rule blocks `v*`.
 
-Run order: merge to `main` (Official Build Pipeline), then run Official Release Pipeline with `deploy_mode=full` and `cell_keys=cell_1_westus`; later versions use `deploy_only`. If a role assignment fails with "Authorization failed", step 2 is missing; if login fails, the federated credential subject does not match the repo/environment name.
+Run order: merge to `main` (Official Build Pipeline), then run Official Release Pipeline with `deploy_mode=full` and `cell_keys=cell_1_westeurope`; later versions use `deploy_only`. If a role assignment fails with "Authorization failed", step 2 is missing; if login fails, the federated credential subject does not match the repo/environment name.
 **Web API authentication (optional, default is anonymous)**
 
 *Automatic (recommended):* set the GitHub environment variable `PROVISION_AUTH_APP=true`. `auth_app.bicep` then creates the API app (scope `access_as_user`) and the Scalar SPA app (redirect URI = Front Door host) in Entra ID via the Microsoft Graph Bicep extension (`bicepconfig.json`), and feeds authority/audience/client id/scope to the Web API. Everything is global and shared by all cells. One-time requirement: the deploying identity needs the Microsoft Graph application permission `Application.ReadWrite.OwnedBy` with admin consent. None of these values are secrets (JWT validation and SPA + PKCE need no client secret), so no Key Vault is used; add one when a real secret appears.
