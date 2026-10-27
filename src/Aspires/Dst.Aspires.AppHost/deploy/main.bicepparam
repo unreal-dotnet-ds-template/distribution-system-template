@@ -2,7 +2,7 @@ using 'main.bicep'
 
 // Every value can be overridden by the pipeline through environment variables.
 param mode = readEnvironmentVariable('DEPLOY_MODE', 'deploy_only')
-param cellKeys = json(readEnvironmentVariable('CELL_KEYS', '["cell_1_westus"]'))
+param cellKeys = json(readEnvironmentVariable('CELL_KEYS', '["cell_1_westeurope"]'))
 param appVersion = readEnvironmentVariable('APP_VERSION', 'dev')
 param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
 param deployerPrincipalType = readEnvironmentVariable('DEPLOYER_PRINCIPAL_TYPE', 'ServicePrincipal')

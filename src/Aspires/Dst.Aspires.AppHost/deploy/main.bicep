@@ -103,9 +103,9 @@ param grafanaSku string = 'Standard'
 //   cell_2_eastus: { cellId: '2', region: 'eastus' }
 //   cell_3_northeurope: { cellId: '3', region: 'northeurope' }
 var cellCatalog = {
-  cell_1_westus: {
+  cell_1_westeurope: {
     cellId: '1'
-    region: 'westus'
+    region: 'westeurope'
   }
 }
 

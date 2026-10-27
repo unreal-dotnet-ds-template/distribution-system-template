@@ -28,10 +28,10 @@ on:
           - full
           - deploy_only
       cell_keys:
-        description: Comma separated cell keys from the catalog in deploy/main.bicep (e.g. cell_1_westus,cell_2_eastus)
+        description: Comma separated cell keys from the catalog in deploy/main.bicep (e.g. cell_1_westeurope,cell_2_eastus)
         required: false
         type: string
-        default: cell_1_westus
+        default: cell_1_westeurope
 
 permissions:
   contents: write  # needed to create GitHub Releases
