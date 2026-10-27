@@ -23,13 +23,13 @@ jobs:
         # SDK version is read automatically from global.json
 
       - name: Restore
-        run: dotnet restore
+        run: bash scripts/dotnet-ci.sh restore
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: bash scripts/dotnet-ci.sh build Release
       
       - name: Pre-pull Redis Docker Image
-        run: docker pull redis:latest
+        run: bash scripts/dotnet-ci.sh pull-redis redis:latest
 
       - name: Test
         timeout-minutes: 5
@@ -40,10 +40,7 @@ jobs:
           DOTNET_RESOURCE_SERVICE_ENDPOINT_URL: "http://127.0.0.1:0"
           ASPNETCORE_URLS: "http://+:5000"
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
-        run: |
-          dotnet test --no-build --configuration Release \
-            --report-xunit-trx \
-            --results-directory ./test-results
+        run: bash scripts/dotnet-ci.sh test Release ./test-results
 
       - name: Upload test results
         if: always()
