@@ -23,7 +23,7 @@
     <PackageVersion Include="Microsoft.Orleans.Dashboard" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="10.4.0" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="10.4.2" />
     <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="10.4.0" />
   </ItemGroup>
   <ItemGroup Label="Aspire">
