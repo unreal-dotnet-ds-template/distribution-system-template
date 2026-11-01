@@ -34,7 +34,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.6.4" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.6.4" />
     <PackageVersion Include="Aspire.Hosting.Orleans" Version="13.6.4" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.4" />
   </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
